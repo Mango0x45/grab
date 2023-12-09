@@ -16,6 +16,12 @@
 #	error "REG_STARTEND not defined"
 #endif
 
+#ifdef __GNUC__
+#	define unreachable() __builtin_unreachable()
+#else
+#	define unreachable()
+#endif
+
 #define die(...)  err(EXIT_FAILURE, __VA_ARGS__);
 #define diex(...) errx(EXIT_FAILURE, __VA_ARGS__);
 
@@ -91,6 +97,7 @@ main(int argc, char **argv)
 		case 'h':
 			if (execlp("man", "man", "1", argv[0], NULL) == -1)
 				die("execlp: man 1 %s", argv[0]);
+			unreachable();
 		case 'z':
 			delim = '\0';
 			break;
