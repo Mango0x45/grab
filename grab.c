@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <err.h>
+#include <libgen.h>
 #include <limits.h>
 #include <locale.h>
 #include <regex.h>
@@ -66,7 +67,10 @@ static const cmd_func op_table[UCHAR_MAX] = {
 static void
 usage(const char *s)
 {
-	fprintf(stderr, "Usage: %s [-d string] pattern [file ...]\n", s);
+	fprintf(stderr,
+	        "Usage: %s [-z] pattern [file ...]\n"
+	        "       %s -h\n",
+	        s, s);
 	exit(EXIT_FAILURE);
 }
 
@@ -76,13 +80,17 @@ main(int argc, char **argv)
 	int rv, opt;
 	struct ops ops;
 
+	argv[0] = basename(argv[0]);
 	if (argc < 2)
 		usage(argv[0]);
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt(argc, argv, "z")) != -1) {
+	while ((opt = getopt(argc, argv, "hz")) != -1) {
 		switch (opt) {
+		case 'h':
+			if (execlp("man", "man", "1", argv[0], NULL) == -1)
+				die("execlp: man 1 %s", argv[0]);
 		case 'z':
 			delim = '\0';
 			break;
