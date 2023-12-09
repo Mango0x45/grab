@@ -54,8 +54,8 @@ static struct ops comppat(char *);
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
+static char delim = '\n';
 static int rv = EXIT_SUCCESS;
-static const char *delim = "\n";
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
 	['v'] = cmdg,
@@ -81,10 +81,10 @@ main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
+	while ((opt = getopt(argc, argv, "z")) != -1) {
 		switch (opt) {
-		case 'd':
-			delim = optarg;
+		case 'z':
+			delim = '\0';
 			break;
 		default:
 			usage(argv[0]);
@@ -239,7 +239,7 @@ void
 putsv(struct sv sv)
 {
 	fwrite(sv.p, 1, sv.len, stdout);
-	fputs(delim, stdout);
+	putchar(delim);
 }
 
 regex_t
