@@ -175,8 +175,13 @@ grab(struct ops ops, FILE *stream, const char *filename)
 	if (ferror(stream)) {
 		warn("fread: %s", filename);
 		rv = EXIT_FAILURE;
-	} else
-		cmdx((struct sv){.p = chars.buf, .len = chars.len}, ops, 0);
+	} else {
+		struct sv sv = {
+			.p = chars.buf,
+			.len = chars.len,
+		};
+		op_table[(uchar)ops.buf[0].c](sv, ops, 0);
+	}
 
 	free(chars.buf);
 }
