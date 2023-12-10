@@ -52,6 +52,7 @@ typedef void (*cmd_func)(struct sv, struct ops, size_t);
 
 static void cmdg(struct sv, struct ops, size_t);
 static void cmdx(struct sv, struct ops, size_t);
+static void cmdy(struct sv, struct ops, size_t);
 
 static void grab(struct ops, FILE *, const char *);
 static void putsv(struct sv);
@@ -67,7 +68,7 @@ static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
 	['v'] = cmdg,
 	['x'] = cmdx,
-	// ['y'] = cmdy,
+	['y'] = cmdy,
 };
 
 static void
@@ -202,6 +203,26 @@ grab(struct ops ops, FILE *stream, const char *filename)
 }
 
 void
+cmdg(struct sv sv, struct ops ops, size_t i)
+{
+	int r;
+	regmatch_t pm = {
+		.rm_so = 0,
+		.rm_eo = sv.len,
+	};
+	struct op op = ops.buf[i];
+
+	r = regexec(&op.pat, sv.p, 1, &pm, REG_STARTEND);
+	if ((r == REG_NOMATCH && op.c == 'g') || (r != REG_NOMATCH && op.c == 'v'))
+		return;
+
+	if (i + 1 == ops.len)
+		putsv(sv);
+	else
+		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1);
+}
+
+void
 cmdx(struct sv sv, struct ops ops, size_t i)
 {
 	regmatch_t pm = {
@@ -231,23 +252,54 @@ cmdx(struct sv sv, struct ops ops, size_t i)
 }
 
 void
-cmdg(struct sv sv, struct ops ops, size_t i)
+cmdy(struct sv sv, struct ops ops, size_t i)
 {
-	int r;
 	regmatch_t pm = {
 		.rm_so = 0,
 		.rm_eo = sv.len,
 	};
+	regmatch_t prev = {
+		.rm_so = 0,
+		.rm_eo = 0,
+	};
 	struct op op = ops.buf[i];
 
-	r = regexec(&op.pat, sv.p, 1, &pm, REG_STARTEND);
-	if ((r == REG_NOMATCH && op.c == 'g') || (r != REG_NOMATCH && op.c == 'v'))
-		return;
+	do {
+		struct sv nsv;
 
-	if (i + 1 == ops.len)
-		putsv(sv);
-	else
-		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1);
+		if (regexec(&op.pat, sv.p, 1, &pm, REG_STARTEND) == REG_NOMATCH)
+			break;
+
+		if (prev.rm_so || prev.rm_eo || pm.rm_so) {
+			nsv = (struct sv){
+				.p = sv.p + prev.rm_eo,
+				.len = pm.rm_so - prev.rm_eo,
+			};
+			if (i + 1 == ops.len)
+				putsv(nsv);
+			else
+				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1);
+		}
+
+		prev = pm;
+		if (pm.rm_so == pm.rm_eo)
+			pm.rm_eo++;
+		pm = (regmatch_t){
+			.rm_so = pm.rm_eo,
+			.rm_eo = sv.len,
+		};
+	} while (pm.rm_so < pm.rm_eo);
+
+	if (prev.rm_eo < pm.rm_eo) {
+		struct sv nsv = {
+			.p = sv.p + pm.rm_so,
+			.len = pm.rm_eo - pm.rm_so,
+		};
+		if (i + 1 == ops.len)
+			putsv(nsv);
+		else
+			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1);
+	}
 }
 
 void
