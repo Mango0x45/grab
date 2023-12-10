@@ -24,6 +24,11 @@
 
 #define die(...)  err(EXIT_FAILURE, __VA_ARGS__);
 #define diex(...) errx(EXIT_FAILURE, __VA_ARGS__);
+#define warn(...) \
+	do { \
+		warn(__VA_ARGS__); \
+		rv = EXIT_FAILURE; \
+	} while (0)
 
 #define EEARLY "Input string terminated prematurely"
 
@@ -84,7 +89,7 @@ usage(const char *s)
 int
 main(int argc, char **argv)
 {
-	int rv, opt;
+	int opt;
 	struct ops ops;
 
 	argv[0] = basename(argv[0]);
@@ -121,7 +126,6 @@ main(int argc, char **argv)
 				grab(ops, stdin, "-");
 			} else if ((fp = fopen(argv[i], "r")) == NULL) {
 				warn("fopen: %s", argv[i]);
-				rv = EXIT_FAILURE;
 			} else {
 				grab(ops, fp, argv[i]);
 				fclose(fp);
@@ -188,10 +192,9 @@ grab(struct ops ops, FILE *stream, const char *filename)
 		chars.len += n = fread(chars.buf + chars.len, 1, BUFSIZ, stream);
 	} while (n == BUFSIZ);
 
-	if (ferror(stream)) {
+	if (ferror(stream))
 		warn("fread: %s", filename);
-		rv = EXIT_FAILURE;
-	} else {
+	else {
 		struct sv sv = {
 			.p = chars.buf,
 			.len = chars.len,
