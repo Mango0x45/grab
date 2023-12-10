@@ -69,11 +69,17 @@ static char *xstrchrnul(const char *, char);
 
 static char delim = '\n';
 static int rv = EXIT_SUCCESS;
+
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
 	['v'] = cmdg,
 	['x'] = cmdx,
 	['y'] = cmdy,
+};
+
+static const char esc_table[UCHAR_MAX] = {
+	['\\'] = '\\', ['a'] = '\a', ['b'] = '\b', ['f'] = '\f',
+	['n'] = '\n',  ['r'] = '\r', ['t'] = '\t', ['v'] = '\v',
 };
 
 static void
@@ -318,6 +324,18 @@ mkregex(char *s, size_t n)
 	char c = s[n];
 	int ret;
 	regex_t r;
+
+	for (size_t i = 0; i < n - 1; i++) {
+		if (s[i] == '\\') {
+			char c = esc_table[(uchar)s[i + 1]];
+			if (c) {
+				for (size_t j = i; j < n - 1; j++)
+					s[j] = s[j + 1];
+				s[i] = c;
+				n--;
+			}
+		}
+	}
 
 	s[n] = 0;
 	if ((ret = regcomp(&r, s, REG_EXTENDED | REG_NEWLINE)) != 0) {
