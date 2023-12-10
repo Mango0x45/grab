@@ -12,9 +12,79 @@
 .Nm
 .Fl h
 .Sh DESCRIPTION
+The
+.Nm
+utility searches for text in files corresponding to
+.Ar pattern
+and prints the corresponding matches to the standard output.
+Unlike the
+.Xr grep 1
+utility,
+.Nm
+is not strictly line-oriented;
+instead of always matching on complete lines,
+the user defines the structure of the text they would like to match and
+filters on the results.
+For more details on the pattern syntax, see
+.Sx Pattern Syntax .
+.Pp
+.Nm
+will read from the files provided on the command-line.
+If no files are provided, the standard input will be read instead.
+The special filename
+.Sq -
+can also be provided,
+which represents the standard input.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl h
+Display help information by opening this manual page.
+.It Fl z
+Separate output data by null bytes
+.Pq Sq \e0
+instead of newlines.
+This option can be used to process matches containing newlines.
+.El
+.Ss Pattern Syntax
+A pattern is a sequences of commands optionally separated by whitespace.
+A command is an operator followed by a delimiter, a regular expression,
+and then terminated by the same delimiter.  The last command of a pattern
+need not have a terminating delimiter.
+.Pp
+The supported operators are as follows:
+.Bl -tag -compact
+.It g
+Keep selections that match the given regex.
+.It v
+Discard selections that match the given regex.
+.It x
+Select everything that matches the given regex.
+.It y
+Select everything that doesn’t match the given regex.
+.El
+.Pp
+An example pattern to match all numbers that contain a ‘3’ but aren’t
+‘1337’ could be
+.Sq x/[0-9]+/ g/3/ v/^1337$/ .
+In that pattern,
+.Sq x/[0-9]+/
+selects all numbers in the input,
+.Sq g/3/
+keeps only those matches that contain the number 3,
+and
+.Sq v/^1337$/
+filters out the specific number 1337.
+.Pp
+As you may use whichever delimiter you like, the following is also valid:
+.Pp
+.Dl x|[0-9]+| g.3. v#^1337#
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
+List all your systems CPU flags, sorted and without duplicates:
+.Pp
+.Dl $ grab 'x/^flags.*/ x/\ew+/ v/flags/' | sort | uniq
 .Sh SEE ALSO
 .Xr grep 1
 .Rs
