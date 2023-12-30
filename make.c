@@ -69,7 +69,7 @@ main(int argc, char **argv)
 			cmdprc(c);
 		}
 	} else {
-		if (foutdated("grab", "grab.c")) {
+		if (foutdated("grab", "grab.c", "da.h")) {
 			cmdadd(&c, CC, WFLAGS);
 			if (debug)
 				cmdadd(&c, DFLAGS);
