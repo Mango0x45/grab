@@ -6,6 +6,20 @@ paper][1].  Grab allows you to be far more precise with your searching
 than Grep, as it doesn’t constrain itself to working only on individual
 lines.
 
+
+## Installation
+
+To install grab, all you need is a C compiler:
+
+```sh
+$ cc -o make make.c  # Bootstrap the build script
+$ ./make  # Build the project
+$ ./make install  # Install the project
+```
+
+
+## Description
+
 Grab invokations must include a pattern string which specifies which text
 to match.  A pattern string consists of one or more commands.  A command
 is an operator followed by a delimiter, a regular expression (regex), and
