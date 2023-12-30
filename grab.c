@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <err.h>
+#include <getopt.h>
 #include <libgen.h>
 #include <limits.h>
 #include <locale.h>
@@ -91,6 +92,10 @@ main(int argc, char **argv)
 {
 	int opt;
 	struct ops ops;
+	struct option longopts[] = {
+		{"help", no_argument, 0, 'h'},
+		{"zero", no_argument, 0, 'z'},
+	};
 
 	argv[0] = basename(argv[0]);
 	if (argc < 2)
@@ -98,7 +103,7 @@ main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt(argc, argv, "hz")) != -1) {
+	while ((opt = getopt_long(argc, argv, "hz", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'h':
 			execlp("man", "man", "1", argv[0], NULL);
