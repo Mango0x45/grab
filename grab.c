@@ -50,22 +50,22 @@ struct sv {
 };
 
 typedef unsigned char uchar;
-typedef void (*cmd_func)(struct sv, struct ops, size_t);
+typedef void (*cmd_func)(struct sv, struct ops, size_t, const char *);
 
-static void cmdg(struct sv, struct ops, size_t);
-static void cmdx(struct sv, struct ops, size_t);
-static void cmdy(struct sv, struct ops, size_t);
+static void cmdg(struct sv, struct ops, size_t, const char *);
+static void cmdx(struct sv, struct ops, size_t, const char *);
+static void cmdy(struct sv, struct ops, size_t, const char *);
 
 static void grab(struct ops, FILE *, const char *);
-static void putsv(struct sv);
+static void putm(struct sv, const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
 
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
-static int rv = EXIT_SUCCESS;
-static bool nflag, zflag;
+static int filecnt, rv;
+static bool color, nflag, zflag;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -124,6 +124,13 @@ main(int argc, char **argv)
 
 	argc -= optind;
 	argv += optind;
+	filecnt = argc - 1;
+
+	if (isatty(STDOUT_FILENO) == 1) {
+		const char *s;
+		if (!(s = getenv("NO_COLOR")) || !*s)
+			color = (s = getenv("TERM")) && strcmp(s, "dumb");
+	}
 
 	ops = comppat(argv[0]);
 	if (argc == 1)
@@ -209,14 +216,14 @@ grab(struct ops ops, FILE *stream, const char *filename)
 			.p = chars.buf,
 			.len = chars.len,
 		};
-		op_table[(uchar)ops.buf[0].c](sv, ops, 0);
+		op_table[(uchar)ops.buf[0].c](sv, ops, 0, filename);
 	}
 
 	free(chars.buf);
 }
 
 void
-cmdg(struct sv sv, struct ops ops, size_t i)
+cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
 	int r;
 	regmatch_t pm = {
@@ -230,13 +237,13 @@ cmdg(struct sv sv, struct ops ops, size_t i)
 		return;
 
 	if (i + 1 == ops.len)
-		putsv(sv);
+		putm(sv, filename);
 	else
-		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1);
+		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1, filename);
 }
 
 void
-cmdx(struct sv sv, struct ops ops, size_t i)
+cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
 	regmatch_t pm = {
 		.rm_so = 0,
@@ -251,9 +258,9 @@ cmdx(struct sv sv, struct ops ops, size_t i)
 			break;
 		nsv = (struct sv){.p = sv.p + pm.rm_so, .len = pm.rm_eo - pm.rm_so};
 		if (i + 1 == ops.len)
-			putsv(nsv);
+			putm(nsv, filename);
 		else
-			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1);
+			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 
 		if (pm.rm_so == pm.rm_eo)
 			pm.rm_eo++;
@@ -265,7 +272,7 @@ cmdx(struct sv sv, struct ops ops, size_t i)
 }
 
 void
-cmdy(struct sv sv, struct ops ops, size_t i)
+cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
 	regmatch_t pm = {
 		.rm_so = 0,
@@ -289,9 +296,9 @@ cmdy(struct sv sv, struct ops ops, size_t i)
 				.len = pm.rm_so - prev.rm_eo,
 			};
 			if (i + 1 == ops.len)
-				putsv(nsv);
+				putm(nsv, filename);
 			else
-				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1);
+				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 		}
 
 		prev = pm;
@@ -309,15 +316,21 @@ cmdy(struct sv sv, struct ops ops, size_t i)
 			.len = pm.rm_eo - pm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putsv(nsv);
+			putm(nsv, filename);
 		else
-			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1);
+			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 	}
 }
 
 void
-putsv(struct sv sv)
+putm(struct sv sv, const char *filename)
 {
+	if (filecnt > 1) {
+		if (color)
+			printf("\33[35m%s\33[36m:\33[0m", filename);
+		else
+			printf("%s:", filename);
+	}
 	fwrite(sv.p, 1, sv.len, stdout);
 	putchar(zflag ? '\0' : '\n');
 }
