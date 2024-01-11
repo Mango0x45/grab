@@ -5,7 +5,9 @@
 #include <limits.h>
 #include <locale.h>
 #include <regex.h>
-#include <stdbool.h>
+#if !GRAB_IS_C23
+#	include <stdbool.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

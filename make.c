@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -75,6 +76,9 @@ main(int argc, char **argv)
 	} else {
 		if (foutdated("grab", "grab.c", "da.h")) {
 			cmdadd(&c, CC, WFLAGS);
+#ifdef CBS_IS_C23
+			cmdadd(&c, "-DGRAB_IS_C23=1");
+#endif
 			if (debug)
 				cmdadd(&c, DFLAGS);
 			else
