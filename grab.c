@@ -329,10 +329,20 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 void
 putm(struct sv sv, const char *filename)
 {
+	static const char *fnc, *sepc;
+
+	if (!fnc) {
+		const char *s;
+
+		fnc = (s = getenv("GRAB_COLOR_FNAME")) && *s ? s : "35";
+		sepc = (s = getenv("GRAB_COLOR_SEP")) && *s ? s : "36";
+	}
+
 	if (fflag || filecnt > 1) {
-		if (color)
-			printf("\33[35m%s\33[36m%c\33[0m", filename, zflag ? '\0' : ':');
-		else
+		if (color) {
+			printf("\33[%sm%s\33[%sm%c\33[0m", fnc, filename, sepc,
+			       zflag ? '\0' : ':');
+		} else
 			printf("%s%c", filename, zflag ? '\0' : ':');
 	}
 	fwrite(sv.p, 1, sv.len, stdout);
