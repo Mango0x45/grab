@@ -1,17 +1,17 @@
-#include <assert.h>
 #include <err.h>
 #include <getopt.h>
 #include <libgen.h>
 #include <limits.h>
 #include <locale.h>
 #include <regex.h>
-#if !GRAB_IS_C23
-#	include <stdbool.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#if !GRAB_IS_C23
+#	include <assert.h>
+#	include <stdbool.h>
+#endif
 
 #include "da.h"
 
