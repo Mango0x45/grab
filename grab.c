@@ -65,7 +65,7 @@ static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool color, nflag, zflag;
+static bool color, fflag, nflag, zflag;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -83,7 +83,7 @@ static void
 usage(const char *s)
 {
 	fprintf(stderr,
-	        "Usage: %s [-nz] pattern [file ...]\n"
+	        "Usage: %s [-fnz] pattern [file ...]\n"
 	        "       %s -h\n",
 	        s, s);
 	exit(EXIT_FAILURE);
@@ -95,9 +95,10 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
-		{"help",    no_argument, 0, 'h'},
-		{"newline", no_argument, 0, 'n'},
-		{"zero",    no_argument, 0, 'z'},
+		{"help",      no_argument, 0, 'h'},
+		{"filenames", no_argument, 0, 'f'},
+		{"newline",   no_argument, 0, 'n'},
+		{"zero",      no_argument, 0, 'z'},
 	};
 
 	argv[0] = basename(argv[0]);
@@ -106,8 +107,11 @@ main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "hnz", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "fhnz", longopts, NULL)) != -1) {
 		switch (opt) {
+		case 'f':
+			fflag = true;
+			break;
 		case 'h':
 			execlp("man", "man", "1", argv[0], NULL);
 			die("execlp: man 1 %s", argv[0]);
@@ -325,7 +329,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 void
 putm(struct sv sv, const char *filename)
 {
-	if (filecnt > 1) {
+	if (fflag || filecnt > 1) {
 		if (color)
 			printf("\33[35m%s\33[36m:\33[0m", filename);
 		else
