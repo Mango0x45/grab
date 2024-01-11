@@ -10,13 +10,15 @@
 #include "cbs.h"
 
 #define CC "cc"
+#define CFLAGS \
+	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-D_POSIX_C_SOURCE=200809", \
+		"-pipe"
+#define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
 #ifdef __APPLE__
-#	define CFLAGS "-pipe", "-O3"
+#	define CFLAGS_RELEASE "-O3"
 #else
-#	define CFLAGS "-pipe", "-O3", "-march=native", "-mtune=native"
+#	define CFLAGS_RELEASE "-O3", "-march=native", "-mtune=native"
 #endif
-#define DFLAGS "-DGRAB_DEBUG", "-g", "-ggdb3"
-#define WFLAGS "-Wall", "-Wextra", "-Werror", "-Wpedantic"
 #define PREFIX "/usr/local"
 
 #define streq(a, b) (!strcmp(a, b))
@@ -75,14 +77,14 @@ main(int argc, char **argv)
 		}
 	} else {
 		if (foutdated("grab", "grab.c", "da.h")) {
-			cmdadd(&c, CC, WFLAGS);
+			cmdadd(&c, CC, CFLAGS);
 #ifdef CBS_IS_C23
 			cmdadd(&c, "-DGRAB_IS_C23=1");
 #endif
 			if (debug)
-				cmdadd(&c, DFLAGS);
+				cmdadd(&c, CFLAGS_DEBUG);
 			else
-				cmdadd(&c, CFLAGS);
+				cmdadd(&c, CFLAGS_RELEASE);
 			cmdadd(&c, "-o", "grab", "grab.c");
 			cmdprc(c);
 		}
