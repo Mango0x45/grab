@@ -27,6 +27,7 @@
 		warn(__VA_ARGS__); \
 		rv = EXIT_FAILURE; \
 	} while (0)
+#define streq(a, b) (!strcmp(a, b))
 
 #define EEARLY "Input string terminated prematurely"
 
@@ -133,7 +134,7 @@ main(int argc, char **argv)
 	filecnt = argc - 1;
 
 	if (isatty(STDOUT_FILENO) == 1 && !env_or_default("NO_COLOR", nullptr))
-		color = strcmp(env_or_default("TERM", ""), "dumb");
+		color = !streq(env_or_default("TERM", ""), "dumb");
 
 	ops = comppat(argv[0]);
 	if (argc == 1)
@@ -142,7 +143,7 @@ main(int argc, char **argv)
 		for (int i = 1; i < argc; i++) {
 			FILE *fp;
 
-			if (strcmp(argv[i], "-") == 0) {
+			if (streq(argv[i], "-")) {
 				grab(ops, stdin, "-");
 			} else if ((fp = fopen(argv[i], "r")) == nullptr) {
 				warn("fopen: %s", argv[i]);
