@@ -11,6 +11,7 @@
 #if !GRAB_IS_C23
 #	include <assert.h>
 #	include <stdbool.h>
+#	define nullptr NULL
 #endif
 
 #include "da.h"
@@ -108,13 +109,13 @@ main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "fhnz", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "fhnz", longopts, nullptr)) != -1) {
 		switch (opt) {
 		case 'f':
 			fflag = true;
 			break;
 		case 'h':
-			execlp("man", "man", "1", argv[0], NULL);
+			execlp("man", "man", "1", argv[0], nullptr);
 			die("execlp: man 1 %s", argv[0]);
 		case 'n':
 			nflag = true;
@@ -131,8 +132,8 @@ main(int argc, char **argv)
 	argv += optind;
 	filecnt = argc - 1;
 
-	if (isatty(STDOUT_FILENO) == 1 && env_or_default("NO_COLOR", NULL))
-		color = strcmp(env_or_default("TERM", ""), "dumb") == 0;
+	if (isatty(STDOUT_FILENO) == 1 && !env_or_default("NO_COLOR", nullptr))
+		color = strcmp(env_or_default("TERM", ""), "dumb");
 
 	ops = comppat(argv[0]);
 	if (argc == 1)
@@ -143,7 +144,7 @@ main(int argc, char **argv)
 
 			if (strcmp(argv[i], "-") == 0) {
 				grab(ops, stdin, "-");
-			} else if ((fp = fopen(argv[i], "r")) == NULL) {
+			} else if ((fp = fopen(argv[i], "r")) == nullptr) {
 				warn("fopen: %s", argv[i]);
 			} else {
 				grab(ops, fp, argv[i]);
@@ -206,7 +207,7 @@ grab(struct ops ops, FILE *stream, const char *filename)
 	do {
 		static_assert(sizeof(char) == 1, "sizeof(char) != 1; wtf?");
 		chars.cap += BUFSIZ;
-		if ((chars.buf = realloc(chars.buf, chars.cap)) == NULL)
+		if ((chars.buf = realloc(chars.buf, chars.cap)) == nullptr)
 			die("realloc");
 		chars.len += n = fread(chars.buf + chars.len, 1, BUFSIZ, stream);
 	} while (n == BUFSIZ);
