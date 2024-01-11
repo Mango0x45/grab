@@ -331,9 +331,9 @@ putm(struct sv sv, const char *filename)
 {
 	if (fflag || filecnt > 1) {
 		if (color)
-			printf("\33[35m%s\33[36m:\33[0m", filename);
+			printf("\33[35m%s\33[36m%c\33[0m", filename, zflag ? '\0' : ':');
 		else
-			printf("%s:", filename);
+			printf("%s%c", filename, zflag ? '\0' : ':');
 	}
 	fwrite(sv.p, 1, sv.len, stdout);
 	putchar(zflag ? '\0' : '\n');
