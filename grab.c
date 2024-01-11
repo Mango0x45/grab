@@ -64,9 +64,8 @@ static struct ops comppat(char *);
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
-static char delim = '\n';
 static int rv = EXIT_SUCCESS;
-static bool nflag;
+static bool nflag, zflag;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -116,7 +115,7 @@ main(int argc, char **argv)
 			nflag = true;
 			break;
 		case 'z':
-			delim = '\0';
+			zflag = true;
 			break;
 		default:
 			usage(argv[0]);
@@ -320,7 +319,7 @@ void
 putsv(struct sv sv)
 {
 	fwrite(sv.p, 1, sv.len, stdout);
-	putchar(delim);
+	putchar(zflag ? '\0' : '\n');
 }
 
 regex_t
