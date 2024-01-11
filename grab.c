@@ -60,6 +60,7 @@ static void grab(struct ops, FILE *, const char *);
 static void putm(struct sv, const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
+static char *env_or_default(const char *, const char *);
 
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
@@ -130,11 +131,8 @@ main(int argc, char **argv)
 	argv += optind;
 	filecnt = argc - 1;
 
-	if (isatty(STDOUT_FILENO) == 1) {
-		const char *s;
-		if (!(s = getenv("NO_COLOR")) || !*s)
-			color = (s = getenv("TERM")) && strcmp(s, "dumb");
-	}
+	if (isatty(STDOUT_FILENO) == 1 && env_or_default("NO_COLOR", NULL))
+		color = strcmp(env_or_default("TERM", ""), "dumb") == 0;
 
 	ops = comppat(argv[0]);
 	if (argc == 1)
@@ -332,10 +330,8 @@ putm(struct sv sv, const char *filename)
 	static const char *fnc, *sepc;
 
 	if (!fnc) {
-		const char *s;
-
-		fnc = (s = getenv("GRAB_COLOR_FNAME")) && *s ? s : "35";
-		sepc = (s = getenv("GRAB_COLOR_SEP")) && *s ? s : "36";
+		fnc = env_or_default("GRAB_COLOR_FNAME", "35");
+		sepc = env_or_default("GRAB_COLOR_SEP", "36");
 	}
 
 	if (fflag || filecnt > 1) {
@@ -380,6 +376,13 @@ mkregex(char *s, size_t n)
 	s[n] = c;
 
 	return r;
+}
+
+char *
+env_or_default(const char *e, const char *d)
+{
+	const char *s = getenv(e);
+	return (char *)(s && *s ? s : d);
 }
 
 bool
