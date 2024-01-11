@@ -8,8 +8,12 @@
 
 #include "cbs.h"
 
-#define CC     "cc"
-#define CFLAGS "-pipe", "-O3", "-march=native", "-mtune=native"
+#define CC "cc"
+#ifdef __APPLE__
+#	define CFLAGS "-pipe", "-O3"
+#else
+#	define CFLAGS "-pipe", "-O3", "-march=native", "-mtune=native"
+#endif
 #define DFLAGS "-DGRAB_DEBUG", "-g", "-ggdb3"
 #define WFLAGS "-Wall", "-Wextra", "-Werror", "-Wpedantic"
 #define PREFIX "/usr/local"
