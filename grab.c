@@ -64,6 +64,7 @@ static char *xstrchrnul(const char *, char);
 
 static char delim = '\n';
 static int rv = EXIT_SUCCESS;
+static bool nflag;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -81,7 +82,7 @@ static void
 usage(const char *s)
 {
 	fprintf(stderr,
-	        "Usage: %s [-z] pattern [file ...]\n"
+	        "Usage: %s [-nz] pattern [file ...]\n"
 	        "       %s -h\n",
 	        s, s);
 	exit(EXIT_FAILURE);
@@ -93,8 +94,9 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
-		{"help", no_argument, 0, 'h'},
-		{"zero", no_argument, 0, 'z'},
+		{"help",    no_argument, 0, 'h'},
+		{"newline", no_argument, 0, 'n'},
+		{"zero",    no_argument, 0, 'z'},
 	};
 
 	argv[0] = basename(argv[0]);
@@ -103,11 +105,14 @@ main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "hz", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hnz", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'h':
 			execlp("man", "man", "1", argv[0], NULL);
 			die("execlp: man 1 %s", argv[0]);
+		case 'n':
+			nflag = true;
+			break;
 		case 'z':
 			delim = '\0';
 			break;
@@ -320,7 +325,7 @@ regex_t
 mkregex(char *s, size_t n)
 {
 	char c = s[n];
-	int ret;
+	int ret, cflags;
 	regex_t r;
 
 	for (size_t i = 0; i < n - 1; i++) {
@@ -336,7 +341,10 @@ mkregex(char *s, size_t n)
 	}
 
 	s[n] = 0;
-	if ((ret = regcomp(&r, s, REG_EXTENDED | REG_NEWLINE)) != 0) {
+	cflags = REG_EXTENDED;
+	if (nflag)
+		cflags |= REG_NEWLINE;
+	if ((ret = regcomp(&r, s, cflags)) != 0) {
 		char emsg[128];
 		regerror(ret, &r, emsg, sizeof(emsg));
 		diex("Failed to compile regex: %s", emsg);
