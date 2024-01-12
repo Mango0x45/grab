@@ -96,7 +96,7 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-nz] pattern [file ...]\n"
+	        "Usage: %s [-nz] pattern\n"
 #else
 	        "Usage: %s [-fnz] pattern [file ...]\n"
 #endif
