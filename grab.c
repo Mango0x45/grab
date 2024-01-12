@@ -98,8 +98,8 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
-		{"help",      no_argument, 0, 'h'},
 		{"filenames", no_argument, 0, 'f'},
+		{"help",      no_argument, 0, 'h'},
 		{"newline",   no_argument, 0, 'n'},
 		{"zero",      no_argument, 0, 'z'},
 	};
