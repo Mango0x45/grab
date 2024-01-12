@@ -63,12 +63,21 @@ static void putm(struct sv, const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
 static char *env_or_default(const char *, const char *);
+#if GIT_GRAB
+static FILE *getfstream(void);
+#endif
 
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool color, fflag, nflag, zflag;
+static bool color, nflag, zflag;
+static bool fflag =
+#if GIT_GRAB
+	true;
+#else
+	false;
+#endif
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -86,7 +95,11 @@ static void
 usage(const char *s)
 {
 	fprintf(stderr,
+#if GIT_GRAB
+	        "Usage: %s [-nz] pattern [file ...]\n"
+#else
 	        "Usage: %s [-fnz] pattern [file ...]\n"
+#endif
 	        "       %s -h\n",
 	        s, s);
 	exit(EXIT_FAILURE);
@@ -104,17 +117,29 @@ main(int argc, char **argv)
 		{"zero",      no_argument, 0, 'z'},
 	};
 
+#if GIT_GRAB
+	char *entry = NULL;
+	size_t len;
+	ssize_t nr;
+	FILE *flist;
+	const char *opts = "hnz";
+#else
+	const char *opts = "fhnz";
+#endif
+
 	argv[0] = basename(argv[0]);
 	if (argc < 2)
 		usage(argv[0]);
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "fhnz", longopts, nullptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, opts, longopts, nullptr)) != -1) {
 		switch (opt) {
+#if !GIT_GRAB
 		case 'f':
 			fflag = true;
 			break;
+#endif
 		case 'h':
 			execlp("man", "man", "1", argv[0], nullptr);
 			die("execlp: man 1 %s", argv[0]);
@@ -137,6 +162,23 @@ main(int argc, char **argv)
 		color = !streq(env_or_default("TERM", ""), "dumb");
 
 	ops = comppat(argv[0]);
+
+#if GIT_GRAB
+	if ((flist = getfstream()) == nullptr)
+		die("getfstream");
+	while ((nr = getdelim(&entry, &len, '\0', flist)) > 0) {
+		FILE *fp;
+
+		if ((fp = fopen(entry, "r")) == nullptr)
+			warn("fopen: %s", entry);
+		else {
+			grab(ops, fp, entry);
+			fclose(fp);
+		}
+	}
+	if (ferror(flist))
+		warn("getdelim");
+#else
 	if (argc == 1)
 		grab(ops, stdin, "-");
 	else {
@@ -153,6 +195,7 @@ main(int argc, char **argv)
 			}
 		}
 	}
+#endif
 
 #ifdef GRAB_DEBUG
 	for (size_t i = 0; i < ops.len; i++)
@@ -379,6 +422,36 @@ mkregex(char *s, size_t n)
 
 	return r;
 }
+
+#if GIT_GRAB
+FILE *
+getfstream(void)
+{
+	pid_t pid;
+	int fds[2];
+	enum {
+		FD_R,
+		FD_W,
+	};
+
+	if (pipe(fds) == -1)
+		die("pipe");
+
+	switch (pid = fork()) {
+	case -1:
+		die("fork");
+	case 0:
+		close(fds[FD_R]);
+		if (dup2(fds[FD_W], STDOUT_FILENO) == -1)
+			die("dup2");
+		execlp("git", "git", "ls-files", "-z", nullptr);
+		die("execvp: git ls-files -z");
+	}
+
+	close(fds[FD_W]);
+	return fdopen(fds[FD_R], "r");
+}
+#endif
 
 char *
 env_or_default(const char *e, const char *d)

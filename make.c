@@ -70,23 +70,29 @@ main(int argc, char **argv)
 			man = mkoutpath("/share/man/man1");
 			cmdadd(&c, "mkdir", "-p", bin, man);
 			cmdprc(c);
-			cmdadd(&c, "cp", "grab", bin);
+			cmdadd(&c, "cp", "grab", "git-grab", bin);
 			cmdprc(c);
 			cmdadd(&c, "cp", "grab.1", man);
 			cmdprc(c);
 		}
 	} else {
 		if (foutdated("grab", "grab.c", "da.h")) {
-			cmdadd(&c, CC, CFLAGS);
+			for (int i = 0; i < 2; i++) {
+				char buf[] = "-DGIT_GRAB=X";
+				buf[sizeof(buf) - 2] = i + '0';
+
+				cmdadd(&c, CC, CFLAGS);
+				cmdadd(&c, buf);
 #ifdef CBS_IS_C23
-			cmdadd(&c, "-DGRAB_IS_C23=1");
+				cmdadd(&c, "-DGRAB_IS_C23=1");
 #endif
-			if (debug)
-				cmdadd(&c, CFLAGS_DEBUG);
-			else
-				cmdadd(&c, CFLAGS_RELEASE);
-			cmdadd(&c, "-o", "grab", "grab.c");
-			cmdprc(c);
+				if (debug)
+					cmdadd(&c, CFLAGS_DEBUG);
+				else
+					cmdadd(&c, CFLAGS_RELEASE);
+				cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "grab.c");
+				cmdprc(c);
+			}
 		}
 	}
 
