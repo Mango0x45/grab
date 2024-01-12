@@ -40,7 +40,7 @@ int
 main(int argc, char **argv)
 {
 	int opt;
-	bool debug;
+	bool debug = false;
 	cmd_t c = {0};
 
 	cbsinit(argc, argv);
