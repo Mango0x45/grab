@@ -6,7 +6,7 @@
 .Nd search for patterns in files
 .Sh SYNOPSIS
 .Nm
-.Op Fl z
+.Op Fl fnz
 .Ar pattern
 .Op Ar
 .Nm
@@ -36,15 +36,43 @@ The special filename
 can also be provided,
 which represents the standard input.
 .Pp
+The default behavior of
+.Nm
+is to print pattern matches to the standard-output.
+If more than one file argument is provided,
+matches will be prefixed by their respective filename and a colon.
+Note that this behavior is modified by the
+.Fl f
+and
+.Fl z
+options.
+.Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl f , Fl Fl filenames
+Always prefix matches with the names of the files in which the matches
+were made,
+even if only 1 file was provided.
 .It Fl h , Fl Fl help
 Display help information by opening this manual page.
+.It Fl n , Fl Fl newline
+Don’t match newline characters
+.Pq Sq \en
+with the dot
+.Pq Sq \&.
+operator in patterns,
+or in negated character-classes.
 .It Fl z , Fl Fl zero
 Separate output data by null bytes
 .Pq Sq \e0
 instead of newlines.
 This option can be used to process matches containing newlines.
+.Pp
+If combined with the
+.Fl f
+option,
+or if two or more files were provided as arguments,
+filenames and matches will be separated by null bytes instead of colons.
 .El
 .Ss Pattern Syntax
 A pattern is a sequences of commands optionally separated by whitespace.
@@ -79,6 +107,25 @@ filters out the specific number 1337.
 As you may use whichever delimiter you like, the following is also valid:
 .Pp
 .Dl x|[0-9]+| g.3. v#^1337#
+.Sh ENVIRONMENT
+.Bl -tag -width GRAB_COLOR_FNAME
+.It Ev GRAB_COLOR_FNAME
+The color(s) with which to highlight filenames,
+or 35 if unset.
+.It Ev GRAB_COLOR_SEPC
+The color(s) with which to highlight the colon-separator between
+filenames and matches,
+or 36 if unset.
+.It Ev NO_COLOR
+Do not display any colored output when set to a non-empty string,
+even if the standard-output is a terminal.
+.El
+.Pp
+The
+.Ev GRAB_COLOR_*
+environment variables are SGR parameters.
+For more information regarding SGR parameters see
+.Sx SEE ALSO .
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
@@ -93,5 +140,7 @@ List all your systems CPU flags, sorted and without duplicates:
 .%T Structural Regular Expressions
 .%U https://doc.cat-v.org/bell_labs/structural_regexps/se.pdf
 .Re
+.Pp
+.Lk https://en.wikipedia.org/wiki/ANSI_escape_code#SGR "SGR Parameters"
 .Sh AUTHORS
 .An Thomas Voss Aq Mt mail@thomasvoss.com
