@@ -72,7 +72,7 @@ main(int argc, char **argv)
 			cmdprc(c);
 			cmdadd(&c, "cp", "grab", "git-grab", bin);
 			cmdprc(c);
-			cmdadd(&c, "cp", "grab.1", man);
+			cmdadd(&c, "cp", "grab.1", "git-grab.1", man);
 			cmdprc(c);
 		}
 	} else {
