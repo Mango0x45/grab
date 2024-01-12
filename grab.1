@@ -11,6 +11,12 @@
 .Op Ar
 .Nm
 .Fl h
+.Pp
+.Nm "git grab"
+.Op Fl nz
+.Ar pattern
+.Nm "git grab"
+.Fl h
 .Sh DESCRIPTION
 The
 .Nm
@@ -27,6 +33,20 @@ the user defines the structure of the text they would like to match and
 filters on the results.
 For more details on the pattern syntax, see
 .Sx Pattern Syntax .
+.Pp
+The
+.Nm git-grab
+utility is identical to the
+.Nm
+utility in all ways except for two exceptions.
+The first is that files cannot be passed as command-line arguments,
+.Nm git-grab
+instead will read all the files specified by an invocation of
+.Xr git-ls-files 1 .
+Secondly, the
+.Fl f
+option is not available;
+its behavior is always assumed and cannot be disabled.
 .Pp
 .Nm
 will read from the files provided on the command-line.
@@ -137,6 +157,7 @@ Search for a pattern in multiple files without printing filenames:
 .Pp
 .Dl $ cat file1 file2 file3 | grab 'x/pattern/'
 .Sh SEE ALSO
+.Xr git-ls-files 1 ,
 .Xr grep 1
 .Rs
 .%A Rob Pike
