@@ -132,6 +132,10 @@ For more information regarding SGR parameters see
 List all your systems CPU flags, sorted and without duplicates:
 .Pp
 .Dl $ grab 'x/^flags.*/ x/\ew+/ v/flags/' | sort | uniq
+.Pp
+Search for a pattern in multiple files without printing filenames:
+.Pp
+.Dl $ cat file1 file2 file3 | grab 'x/pattern/'
 .Sh SEE ALSO
 .Xr grep 1
 .Rs
