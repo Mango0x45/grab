@@ -72,11 +72,11 @@ main(int argc, char **argv)
 			cmdprc(c);
 			cmdadd(&c, "cp", "grab", "git-grab", bin);
 			cmdprc(c);
-			cmdadd(&c, "cp", "grab.1", "git-grab.1", man);
+			cmdadd(&c, "cp", "man/grab.1", "man/git-grab.1", man);
 			cmdprc(c);
 		}
 	} else {
-		if (foutdated("grab", "grab.c", "da.h")) {
+		if (foutdated("grab", "src/grab.c", "src/da.h")) {
 			for (int i = 0; i < 2; i++) {
 				char buf[] = "-DGIT_GRAB=X";
 				buf[sizeof(buf) - 2] = i + '0';
@@ -90,7 +90,7 @@ main(int argc, char **argv)
 					cmdadd(&c, CFLAGS_DEBUG);
 				else
 					cmdadd(&c, CFLAGS_RELEASE);
-				cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "grab.c");
+				cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c");
 				cmdprc(c);
 			}
 		}
