@@ -15,6 +15,7 @@
 .Nm "git grab"
 .Op Fl nz
 .Ar pattern
+.Op Ar glob ...
 .Nm "git grab"
 .Fl h
 .Sh DESCRIPTION
@@ -39,10 +40,17 @@ The
 utility is identical to the
 .Nm
 utility in all ways except for two exceptions.
-The first is that files cannot be passed as command-line arguments,
-.Nm git-grab
-instead will read all the files specified by an invocation of
-.Xr git-ls-files 1 .
+The first is that if no files
+.Pq globs in this case to be precise
+are specified,
+input is not read from the standard-input but instead all files returned
+by an invocation of
+.Xr git-ls-files 1
+are processed.
+If the user provides one or more globs,
+only the files returned by
+.Xr git-ls-files 1
+that match one or more of the given globs will be processed.
 Secondly, the
 .Fl f
 option is not available;
@@ -156,6 +164,16 @@ List all your systems CPU flags, sorted and without duplicates:
 Search for a pattern in multiple files without printing filenames:
 .Pp
 .Dl $ cat file1 file2 file3 | grab 'x/pattern/'
+.Pp
+Search for usages of an
+.Ql <hb-form-text>
+Vue component —
+but only those which are being passed a
+.Ql placeholder
+property —
+searching all files in the current git-repository:
+.Pp
+.Dl $ git grab 'x/<hb-form-text[^>]+>/ g/\ebplaceholder\eb/' '*.vue'
 .Sh SEE ALSO
 .Xr git-ls-files 1 ,
 .Xr grep 1

@@ -64,7 +64,7 @@ static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
 static char *env_or_default(const char *, const char *);
 #if GIT_GRAB
-static FILE *getfstream(void);
+static FILE *getfstream(int n, char *v[n]);
 #endif
 
 static bool xisspace(char);
@@ -96,7 +96,7 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-nz] pattern\n"
+	        "Usage: %s [-nz] pattern [glob ...]\n"
 #else
 	        "Usage: %s [-fnz] pattern [file ...]\n"
 #endif
@@ -164,7 +164,7 @@ main(int argc, char **argv)
 	ops = comppat(argv[0]);
 
 #if GIT_GRAB
-	if ((flist = getfstream()) == nullptr)
+	if ((flist = getfstream(argc - 1, argv + 1)) == nullptr)
 		die("getfstream");
 	while ((nr = getdelim(&entry, &len, '\0', flist)) > 0) {
 		FILE *fp;
@@ -425,7 +425,7 @@ mkregex(char *s, size_t n)
 
 #if GIT_GRAB
 FILE *
-getfstream(void)
+getfstream(int argc, char *argv[argc])
 {
 	pid_t pid;
 	int fds[2];
@@ -440,11 +440,24 @@ getfstream(void)
 	switch (pid = fork()) {
 	case -1:
 		die("fork");
-	case 0:
+	case 0:;
+		size_t len = argc + 5;
+		char **args;
+
 		close(fds[FD_R]);
 		if (dup2(fds[FD_W], STDOUT_FILENO) == -1)
 			die("dup2");
-		execlp("git", "git", "ls-files", "-z", nullptr);
+
+		if (!(args = malloc(len * sizeof(char *))))
+			die("malloc");
+		args[0] = "git";
+		args[1] = "ls-files";
+		args[2] = "-z";
+		args[3] = "--";
+		memcpy(args + 4, argv, argc * sizeof(char *));
+		args[len - 1] = nullptr;
+
+		execvp("git", args);
 		die("execvp: git ls-files -z");
 	}
 
