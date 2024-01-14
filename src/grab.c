@@ -447,6 +447,7 @@ getfstream(int argc, char *argv[argc])
 		close(fds[FD_R]);
 		if (dup2(fds[FD_W], STDOUT_FILENO) == -1)
 			die("dup2");
+		close(fds[FD_W]);
 
 		if (!(args = malloc(len * sizeof(char *))))
 			die("malloc");
