@@ -71,7 +71,7 @@ static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool color, nflag, zflag;
+static bool color, cflag, nflag, zflag;
 static bool fflag =
 #if GIT_GRAB
 	true;
@@ -96,9 +96,9 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-nz] pattern [glob ...]\n"
+	        "Usage: %s [-cnz] pattern [glob ...]\n"
 #else
-	        "Usage: %s [-fnz] pattern [file ...]\n"
+	        "Usage: %s [-cfnz] pattern [file ...]\n"
 #endif
 	        "       %s -h\n",
 	        s, s);
@@ -111,6 +111,7 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
+		{"color",     no_argument, 0, 'c'},
 		{"filenames", no_argument, 0, 'f'},
 		{"help",      no_argument, 0, 'h'},
 		{"newline",   no_argument, 0, 'n'},
@@ -122,9 +123,9 @@ main(int argc, char **argv)
 	size_t len;
 	ssize_t nr;
 	FILE *flist;
-	const char *opts = "hnz";
+	const char *opts = "chnz";
 #else
-	const char *opts = "fhnz";
+	const char *opts = "cfhnz";
 #endif
 
 	argv[0] = basename(argv[0]);
@@ -135,6 +136,9 @@ main(int argc, char **argv)
 
 	while ((opt = getopt_long(argc, argv, opts, longopts, nullptr)) != -1) {
 		switch (opt) {
+		case 'c':
+			cflag = true;
+			break;
 #if !GIT_GRAB
 		case 'f':
 			fflag = true;
@@ -158,7 +162,7 @@ main(int argc, char **argv)
 	argv += optind;
 	filecnt = argc - 1;
 
-	if (isatty(STDOUT_FILENO) == 1 && !env_or_default("NO_COLOR", nullptr))
+	if (cflag || (isatty(STDOUT_FILENO) == 1 && !env_or_default("NO_COLOR", nullptr)))
 		color = !streq(env_or_default("TERM", ""), "dumb");
 
 	ops = comppat(argv[0]);
