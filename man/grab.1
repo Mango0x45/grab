@@ -1,4 +1,4 @@
-.Dd January 12 2024
+.Dd January 16 2024
 .Dt GRAB 1
 .Os
 .Sh NAME
@@ -6,14 +6,14 @@
 .Nd search for patterns in files
 .Sh SYNOPSIS
 .Nm
-.Op Fl fnz
+.Op Fl cfnz
 .Ar pattern
 .Op Ar
 .Nm
 .Fl h
 .Pp
 .Nm "git grab"
-.Op Fl nz
+.Op Fl cnz
 .Ar pattern
 .Op Ar glob ...
 .Nm "git grab"
@@ -77,6 +77,20 @@ options.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl c , Fl Fl color
+Force colored output,
+even if the output device is not a TTY.
+This is useful when piping the output of
+.Nm
+into a pager such as
+.Xr less 1 .
+.Pp
+Even when this option is specified,
+if the
+.Ev TERM
+environment variable is set to
+.Sq dumb ,
+no color will be output.
 .It Fl f , Fl Fl filenames
 Always prefix matches with the names of the files in which the matches
 were made,
@@ -147,6 +161,13 @@ or 36 if unset.
 .It Ev NO_COLOR
 Do not display any colored output when set to a non-empty string,
 even if the standard-output is a terminal.
+.It Ev TERM
+If set to
+.Sq dumb
+disables colored output,
+even when the
+.Fl c
+option is provided.
 .El
 .Pp
 The
