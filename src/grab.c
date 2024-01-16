@@ -31,6 +31,9 @@
 
 #define EEARLY "Input string terminated prematurely"
 
+#define DEFCOL_FN "35"
+#define DEFCOL_SE "36"
+
 struct op {
 	char c;
 	regex_t pat;
@@ -60,6 +63,7 @@ static void cmdy(struct sv, struct ops, size_t, const char *);
 
 static void grab(struct ops, FILE *, const char *);
 static void putm(struct sv, const char *);
+static bool sgrvalid(const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
 static char *env_or_default(const char *, const char *);
@@ -71,7 +75,7 @@ static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool color, cflag, nflag, zflag;
+static bool cflag, nflag, zflag;
 static bool fflag =
 #if GIT_GRAB
 	true;
@@ -162,8 +166,11 @@ main(int argc, char **argv)
 	argv += optind;
 	filecnt = argc - 1;
 
-	if (cflag || (isatty(STDOUT_FILENO) == 1 && !env_or_default("NO_COLOR", nullptr)))
-		color = !streq(env_or_default("TERM", ""), "dumb");
+	if (!cflag && isatty(STDOUT_FILENO) == 1
+	    && !env_or_default("NO_COLOR", nullptr))
+	{
+		cflag = !streq(env_or_default("TERM", ""), "dumb");
+	}
 
 	ops = comppat(argv[0]);
 
@@ -376,22 +383,67 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 void
 putm(struct sv sv, const char *filename)
 {
-	static const char *fnc, *sepc;
+	static const char *fn, *se;
 
-	if (!fnc) {
-		fnc = env_or_default("GRAB_COLOR_FNAME", "35");
-		sepc = env_or_default("GRAB_COLOR_SEP", "36");
+	if (cflag && !fn) {
+		char *optstr;
+		if ((optstr = env_or_default("GRAB_COLORS", nullptr))) {
+			enum {
+				OPT_FN,
+				OPT_SE,
+			};
+			/* clang-format off */
+			static char *const tokens[] = {
+				[OPT_FN] = "fn",
+				[OPT_SE] = "se",
+				nullptr
+			};
+			/* clang-format on */
+
+			while (*optstr) {
+				char *val;
+				switch (getsubopt(&optstr, tokens, &val)) {
+				case OPT_FN:
+					fn = sgrvalid(val) ? val : DEFCOL_FN;
+					break;
+				case OPT_SE:
+					se = sgrvalid(val) ? val : DEFCOL_SE;
+					break;
+				default:
+					warnx("invalid color value -- '%s'", val);
+					rv = EXIT_FAILURE;
+				}
+			}
+		}
+
+		if (!fn)
+			fn = DEFCOL_FN;
+		if (!se)
+			se = DEFCOL_SE;
 	}
 
 	if (fflag || filecnt > 1) {
-		if (color) {
-			printf("\33[%sm%s\33[%sm%c\33[0m", fnc, filename, sepc,
+		if (cflag) {
+			printf("\33[%sm%s\33[%sm%c\33[0m", fn, filename, se,
 			       zflag ? '\0' : ':');
 		} else
 			printf("%s%c", filename, zflag ? '\0' : ':');
 	}
 	fwrite(sv.p, 1, sv.len, stdout);
 	putchar(zflag ? '\0' : '\n');
+}
+
+bool
+sgrvalid(const char *s)
+{
+	if (!s || !*s)
+		return false;
+	do {
+		if ((*s < '0' || *s > '9') && *s != ';')
+			return false;
+	} while (*++s);
+
+	return true;
 }
 
 regex_t
