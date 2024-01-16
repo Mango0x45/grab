@@ -1,4 +1,6 @@
-#define _POSIX_C_SOURCE 200809L
+#ifndef __APPLE__
+#	define _POSIX_C_SOURCE 200809L
+#endif
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -10,9 +12,7 @@
 #include "cbs.h"
 
 #define CC "cc"
-#define CFLAGS \
-	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-D_POSIX_C_SOURCE=200809", \
-		"-pipe"
+#define CFLAGS "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe"
 #define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
 #ifdef __APPLE__
 #	define CFLAGS_RELEASE "-O3"
