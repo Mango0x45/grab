@@ -1,6 +1,3 @@
-#ifndef __APPLE__
-#	define _POSIX_C_SOURCE 200809L
-#endif
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
