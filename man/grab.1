@@ -150,14 +150,27 @@ As you may use whichever delimiter you like, the following is also valid:
 .Pp
 .Dl x|[0-9]+| g.3. v#^1337#
 .Sh ENVIRONMENT
-.Bl -tag -width GRAB_COLOR_FNAME
-.It Ev GRAB_COLOR_FNAME
-The color(s) with which to highlight filenames,
-or 35 if unset.
-.It Ev GRAB_COLOR_SEPC
-The color(s) with which to highlight the colon-separator between
-filenames and matches,
-or 36 if unset.
+.Bl -tag -width GRAB_COLORS
+.It Ev GRAB_COLORS
+A comma-separated list of color options in the form
+.Sq key=val .
+The value specified by
+.Ar val
+must be a SGR parameter.
+For more information see
+.Sx "SEE ALSO" .
+.Pp
+The keys are as follows:
+.Pp
+.Bl -tag -compact
+.It fn
+filenames prefixing any content line.
+.It se
+separators inserted between filenames and content lines.
+.El
+.Pp
+The default value is
+.Sq fn=35,se=36
 .It Ev NO_COLOR
 Do not display any colored output when set to a non-empty string,
 even if the standard-output is a terminal.
@@ -169,12 +182,6 @@ even when the
 .Fl c
 option is provided.
 .El
-.Pp
-The
-.Ev GRAB_COLOR_*
-environment variables are SGR parameters.
-For more information regarding SGR parameters see
-.Sx SEE ALSO .
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
