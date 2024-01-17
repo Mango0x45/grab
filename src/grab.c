@@ -223,7 +223,7 @@ comppat(char *s)
 #define skip_ws(p) for (; *(p) && xisspace(*(p)); (p)++)
 	struct ops ops;
 
-	da_init(&ops, 8);
+	dainit(&ops, 8);
 	skip_ws(s);
 	if (!*s)
 		diex(EEARLY);
@@ -242,7 +242,7 @@ comppat(char *s)
 		p = ++s;
 		s = xstrchrnul(s, delim);
 		op.pat = mkregex(p, s - p);
-		da_append(&ops, op);
+		dapush(&ops, op);
 
 		if (*s)
 			s++;
