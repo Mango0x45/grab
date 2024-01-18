@@ -113,10 +113,10 @@ grab 'x/^flags.*/ x/\w+/ v/flags/' /proc/cpuinfo \
 3) Filter out the word ‘flags’: `v/flags/`
 
 
-### Fomd `<my-tag>` tags with the attribute `data-attr` in a Git repo
+### Find `<my-tag>` tags with the attribute `data-attr` in a Git repo
 
 ```sh
-git grab 'x/<my-tag[^>]*>/ g/data-attr/' '*.html'
+git grab 'x/<my-tag.*?>/ g/data-attr/' '*.html'
 ```
 
 1) Select all tags matching `<my-tag>`
