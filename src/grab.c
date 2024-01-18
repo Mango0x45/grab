@@ -120,7 +120,9 @@ main(int argc, char **argv)
 	struct ops ops;
 	struct option longopts[] = {
 		{"color",     no_argument, 0, 'c'},
+#if GIT_GRAB
 		{"filenames", no_argument, 0, 'f'},
+#endif
 		{"help",      no_argument, 0, 'h'},
 		{"newline",   no_argument, 0, 'n'},
 		{"zero",      no_argument, 0, 'z'},
