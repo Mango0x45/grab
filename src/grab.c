@@ -218,11 +218,11 @@ main(int argc, char **argv)
 struct ops
 comppat(char *s)
 {
-#define skip_ws(p) for (; *(p) && xisspace(*(p)); (p)++)
 	struct ops ops;
 
 	dainit(&ops, 8);
-	skip_ws(s);
+	while (*s && xisspace(*s))
+		s++;
 	if (!*s)
 		diex(EEARLY);
 
@@ -244,11 +244,11 @@ comppat(char *s)
 
 		if (*s)
 			s++;
-		skip_ws(s);
+		while (*s && xisspace(*s))
+			s++;
 	} while (*s && *(s + 1));
 
 	return ops;
-#undef skip_ws
 }
 
 void
