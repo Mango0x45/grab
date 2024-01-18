@@ -12,7 +12,7 @@
 #	include <pcre2posix.h>
 #else
 #	include <regex.h>
-#	ifdef REG_DOTALL
+#	ifndef REG_DOTALL
 #		define REG_DOTALL 0
 #	endif
 #	define REG_UCP 0
