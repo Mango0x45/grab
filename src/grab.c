@@ -12,6 +12,9 @@
 #	include <pcre2posix.h>
 #else
 #	include <regex.h>
+
+#	define REG_UCP 0
+#	define REG_UTF 0
 #	ifndef REG_STARTEND
 #		error "REG_STARTEND not defined"
 #	endif
@@ -75,7 +78,7 @@ static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool cflag, nflag, zflag;
+static bool cflag, nflag, Uflag, zflag;
 static bool fflag =
 #if GIT_GRAB
 	true;
@@ -95,9 +98,9 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-cnz] pattern [glob ...]\n"
+	        "Usage: %s [-cnUz] pattern [glob ...]\n"
 #else
-	        "Usage: %s [-cfnz] pattern [file ...]\n"
+	        "Usage: %s [-cfnUz] pattern [file ...]\n"
 #endif
 	        "       %s -h\n",
 	        s, s);
@@ -110,14 +113,15 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
-		{"color",     no_argument, 0, 'c'},
+		{"color",      no_argument, 0, 'c'},
 #if GIT_GRAB
-		{"filenames", no_argument, 0, 'f'},
+		{"filenames",  no_argument, 0, 'f'},
 #endif
-		{"help",      no_argument, 0, 'h'},
-		{"newline",   no_argument, 0, 'n'},
-		{"zero",      no_argument, 0, 'z'},
-		{nullptr,     0,           0, 0  },
+		{"help",       no_argument, 0, 'h'},
+		{"newline",    no_argument, 0, 'n'},
+		{"no-unicode", no_argument, 0, 'U'},
+		{"zero",       no_argument, 0, 'z'},
+		{nullptr,      0,           0, 0  },
 	};
 
 #if GIT_GRAB
@@ -125,9 +129,9 @@ main(int argc, char **argv)
 	size_t len;
 	ssize_t nr;
 	FILE *flist;
-	const char *opts = "chnz";
+	const char *opts = "chnUz";
 #else
-	const char *opts = "cfhnz";
+	const char *opts = "cfhnUz";
 #endif
 
 	argv[0] = basename(argv[0]);
@@ -146,15 +150,22 @@ main(int argc, char **argv)
 			fflag = true;
 			break;
 #endif
-		case 'h':
-			execlp("man", "man", "1", argv[0], nullptr);
-			die("execlp: man 1 %s", argv[0]);
 		case 'n':
 			nflag = true;
 			break;
+		case 'U':
+#if GRAB_DO_PCRE
+			Uflag = true;
+			break;
+#else
+			errx(2, "program not built with PCRE support");
+#endif
 		case 'z':
 			zflag = true;
 			break;
+		case 'h':
+			execlp("man", "man", "1", argv[0], nullptr);
+			die("execlp: man 1 %s", argv[0]);
 		default:
 			usage(argv[0]);
 		}
@@ -452,9 +463,11 @@ mkregex(char *s, size_t n)
 	regex_t r;
 
 	s[n] = 0;
-	cflags = REG_EXTENDED;
+	cflags = REG_EXTENDED | REG_UTF;
 	if (nflag)
 		cflags |= REG_NEWLINE;
+	if (!Uflag)
+		cflags |= REG_UCP;
 	if ((ret = regcomp(&r, s, cflags)) != 0) {
 		char emsg[256];
 		regerror(ret, &r, emsg, sizeof(emsg));
