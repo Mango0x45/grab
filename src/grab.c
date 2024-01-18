@@ -25,8 +25,8 @@
 #include "compat.h"
 #include "da.h"
 
-#define die(...)  err(EXIT_FAILURE, __VA_ARGS__);
-#define diex(...) errx(EXIT_FAILURE, __VA_ARGS__);
+#define die(...)  err(EXIT_FAILURE, __VA_ARGS__)
+#define diex(...) errx(EXIT_FAILURE, __VA_ARGS__)
 #define warn(...) \
 	do { \
 		warn(__VA_ARGS__); \
