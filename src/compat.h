@@ -9,12 +9,12 @@
 #endif
 
 #if !LIBCOMPAT_IS_23
-#	include <stdbool.h>
+#	include <stdbool.h> /* IWYU pragma: export */
 #endif
 
 #if !LIBCOMPAT_IS_23
 #	ifndef NULL
-#		include <stddef.h>
+#		include <stddef.h> /* IWYU pragma: export */
 #	endif
 #	define nullptr NULL
 #endif
