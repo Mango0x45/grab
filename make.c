@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <getopt.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,11 +38,16 @@ main(int argc, char **argv)
 {
 	int opt;
 	cmd_t c = {0};
+	struct option longopts[] = {
+		{"debug",   no_argument, 0, 'd'},
+		{"no-pcre", no_argument, 0, 'P'},
+		{nullptr,   0,           0, 0  },
+	};
 
 	cbsinit(argc, argv);
 	rebuild();
 
-	while ((opt = getopt(argc, argv, "dP")) != -1) {
+	while ((opt = getopt_long(argc, argv, "dP", longopts, nullptr)) != -1) {
 		switch (opt) {
 		case 'd':
 			dflag = true;
