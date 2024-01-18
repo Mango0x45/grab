@@ -28,10 +28,7 @@
 		cmdclr(&c); \
 	} while (0)
 
-static size_t _strlcat(char *, const char *, size_t);
-static char *_mkoutpath(const char **, size_t);
-#define mkoutpath(...) \
-	_mkoutpath((const char **)_vtoa(__VA_ARGS__), lengthof(_vtoa(__VA_ARGS__)))
+static char *mkoutpath(const char *);
 
 static bool pflag;
 
@@ -101,64 +98,27 @@ main(int argc, char **argv)
 }
 
 char *
-_mkoutpath(const char **xs, size_t n)
+mkoutpath(const char *s)
 {
-#define trycat(s) \
-	do { \
-		if (_strlcat(buf, (s), PATH_MAX) >= PATH_MAX) \
-			goto toolong; \
-	} while (0)
-
 	char *p, *buf;
 
 	buf = bufalloc(NULL, PATH_MAX, sizeof(char));
 	buf[0] = 0;
 
-	if (p = getenv("DESTDIR"), p && *p)
-		trycat(p);
+	if (p = getenv("DESTDIR"), p && *p) {
+		if (strlcat(buf, p, PATH_MAX) >= PATH_MAX)
+			goto toolong;
+	}
 
 	p = getenv("PREFIX");
-	trycat(p && *p ? p : PREFIX);
-
-	for (size_t i = 0; i < n; i++)
-		trycat(xs[i]);
+	if (strlcat(buf, p && *p ? p : PREFIX, PATH_MAX) >= PATH_MAX)
+		goto toolong;
+	if (strlcat(buf, s, PATH_MAX) >= PATH_MAX)
+		goto toolong;
 
 	return buf;
 
 toolong:
 	errno = ENAMETOOLONG;
 	die(__func__);
-}
-
-size_t
-_strlcat(char *dst, const char *src, size_t size)
-{
-	char *d = dst;
-	const char *s = src;
-	size_t n = size;
-	size_t dlen;
-
-	while (n-- != 0 && *d != '\0')
-		d++;
-
-	dlen = d - dst;
-	n = size - dlen;
-
-	if (n == 0) {
-		while (*s++)
-			;
-		return dlen + (s - src - 1);
-	}
-
-	while (*s != '\0') {
-		if (n != 1) {
-			*d++ = *s;
-			n--;
-		}
-		s++;
-	}
-
-	*d = '\0';
-
-	return dlen + (s - src);
 }
