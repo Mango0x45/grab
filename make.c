@@ -75,23 +75,30 @@ main(int argc, char **argv)
 			cmdprc(c);
 		}
 	} else {
-		if (foutdated("grab", "src/grab.c", "src/da.h")) {
-			for (int i = 0; i < 2; i++) {
-				char buf[] = "-DGIT_GRAB=X";
-				buf[sizeof(buf) - 2] = i + '0';
+		struct strv cc = {0};
+		struct strv cflags = {0};
 
-				cmdadd(&c, CC, CFLAGS);
-				cmdadd(&c, buf);
-				if (!Pflag)
-					cmdadd(&c, "-DGRAB_DO_PCRE=1", "-lpcre2-posix");
-				if (debug)
-					cmdadd(&c, CFLAGS_DEBUG);
-				else
-					cmdadd(&c, CFLAGS_RELEASE);
-				cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c");
-				cmdprc(c);
-			}
+		env_or_default(&cc, "CC", CC);
+		if (debug)
+			env_or_default(&cflags, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
+		else
+			env_or_default(&cflags, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
+
+		for (int i = 0; i < 2; i++) {
+			char buf[] = "-DGIT_GRAB=X";
+			buf[sizeof(buf) - 2] = i + '0';
+
+			cmdaddv(&c, cc.buf, cc.len);
+			cmdaddv(&c, cflags.buf, cflags.len);
+			cmdadd(&c, buf);
+			if (!Pflag)
+				cmdadd(&c, "-DGRAB_DO_PCRE=1", "-lpcre2-posix");
+			cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c");
+			cmdprc(c);
 		}
+
+		strvfree(&cc);
+		strvfree(&cflags);
 	}
 
 	return EXIT_SUCCESS;
