@@ -30,7 +30,7 @@
 
 static char *mkoutpath(const char *);
 
-static bool pflag;
+static bool Pflag;
 
 int
 main(int argc, char **argv)
@@ -42,16 +42,16 @@ main(int argc, char **argv)
 	cbsinit(argc, argv);
 	rebuild();
 
-	while ((opt = getopt(argc, argv, "dp")) != -1) {
+	while ((opt = getopt(argc, argv, "dP")) != -1) {
 		switch (opt) {
 		case 'd':
 			debug = true;
 			break;
-		case 'p':
-			pflag = true;
+		case 'P':
+			Pflag = true;
 			break;
 		default:
-			fputs("Usage: make [-d]\n", stderr);
+			fputs("Usage: make [-dP]\n", stderr);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -82,7 +82,7 @@ main(int argc, char **argv)
 
 				cmdadd(&c, CC, CFLAGS);
 				cmdadd(&c, buf);
-				if (pflag)
+				if (!Pflag)
 					cmdadd(&c, "-DGRAB_DO_PCRE=1", "-lpcre2-posix");
 				if (debug)
 					cmdadd(&c, CFLAGS_DEBUG);
