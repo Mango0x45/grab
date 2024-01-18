@@ -36,7 +36,7 @@ For more details on the pattern syntax, see
 .Sx Pattern Syntax .
 .Pp
 The
-.Nm git-grab
+.Nm git\-grab
 utility is identical to the
 .Nm
 utility in all ways except for two exceptions.
@@ -45,11 +45,11 @@ The first is that if no files
 are specified,
 input is not read from the standard-input but instead all files returned
 by an invocation of
-.Xr git-ls-files 1
+.Xr git\-ls\-files 1
 are processed.
 If the user provides one or more globs,
 only the files returned by
-.Xr git-ls-files 1
+.Xr git\-ls\-files 1
 that match one or more of the given globs will be processed.
 Secondly, the
 .Fl f
@@ -60,7 +60,7 @@ its behavior is always assumed and cannot be disabled.
 will read from the files provided on the command-line.
 If no files are provided, the standard input will be read instead.
 The special filename
-.Sq -
+.Sq \-
 can also be provided,
 which represents the standard input.
 .Pp
@@ -111,7 +111,7 @@ is not compiled with PCRE support.
 See
 .Sx CAVEATS
 for more information.
-.It Fl U , Fl Fl no-unicode
+.It Fl U , Fl Fl no\-unicode
 Don’t use Unicode properties when matching \ed, \ew, etc.
 Recognize only ASCII values instead.
 .Pp
@@ -167,9 +167,9 @@ Select everything that doesn’t match the given regex.
 .Pp
 An example pattern to match all numbers that contain a ‘3’ but aren’t
 ‘1337’ could be
-.Sq x/[0-9]+/ g/3/ v/^1337$/ .
+.Sq x/[0\-9]+/ g/3/ v/^1337$/ .
 In that pattern,
-.Sq x/[0-9]+/
+.Sq x/[0\-9]+/
 selects all numbers in the input,
 .Sq g/3/
 keeps only those matches that contain the number 3,
@@ -179,7 +179,7 @@ filters out the specific number 1337.
 .Pp
 As you may use whichever delimiter you like, the following is also valid:
 .Pp
-.Dl x|[0-9]+| g.3. v#^1337#
+.Dl x|[0\-9]+| g.3. v#^1337#
 .Sh ENVIRONMENT
 .Bl -tag -width GRAB_COLORS
 .It Ev GRAB_COLORS
@@ -225,20 +225,20 @@ Search for a pattern in multiple files without printing filenames:
 .Dl $ cat file1 file2 file3 | grab 'x/pattern/'
 .Pp
 Search for usages of an
-.Ql <hb-form-text>
+.Ql <hb\-form\-text>
 Vue component —
 but only those which are being passed a
 .Ql placeholder
 property —
 searching all files in the current git-repository:
 .Pp
-.Dl $ git grab 'x/<hb-form-text.+?>/ g/\ebplaceholder\eb/' '*.vue'
+.Dl $ git grab 'x/<hb\-form\-text.+?>/ g/\ebplaceholder\eb/' '*.vue'
 .Pp
 Extract bibliographic references from
 .Xr mdoc 7
 formatted manual pages:
 .Pp
-.Dl $ grab -n 'x/(^\e.%.*\en)+/' foo.1 bar.1
+.Dl $ grab \-n 'x/(^\e.%.*\en)+/' foo.1 bar.1
 .Pp
 Extract the
 .Sx SYNOPSIS
@@ -246,9 +246,9 @@ section from the given
 .Xr mdoc 7
 formatted manual pages:
 .Pp
-.Dl $ grab -n 'x/^\.Sh SYNOPSIS\en(^.*\en(?!^\e.Sh))+/' foo.1 bar.1
+.Dl $ grab \-n 'x/^\.Sh SYNOPSIS\en(^.*\en(?!^\e.Sh))+/' foo.1 bar.1
 .Sh SEE ALSO
-.Xr git-ls-files 1 ,
+.Xr git\-ls\-files 1 ,
 .Xr grep 1 ,
 .Xr pcre2syntax 3 ,
 .Xr regex 7
@@ -256,7 +256,7 @@ formatted manual pages:
 .%A Rob Pike
 .%D 1987
 .%T Structural Regular Expressions
-.%U https://doc.cat-v.org/bell_labs/structural_regexps/se.pdf
+.%U https://doc.cat\-v.org/bell_labs/structural_regexps/se.pdf
 .Re
 .Pp
 .Lk https://en.wikipedia.org/wiki/ANSI_escape_code#SGR "SGR Parameters"
