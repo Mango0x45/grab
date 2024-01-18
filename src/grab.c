@@ -117,6 +117,7 @@ main(int argc, char **argv)
 		{"help",      no_argument, 0, 'h'},
 		{"newline",   no_argument, 0, 'n'},
 		{"zero",      no_argument, 0, 'z'},
+		{nullptr,     0,           0, 0  },
 	};
 
 #if GIT_GRAB
