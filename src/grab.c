@@ -456,7 +456,7 @@ mkregex(char *s, size_t n)
 	if (nflag)
 		cflags |= REG_NEWLINE;
 	if ((ret = regcomp(&r, s, cflags)) != 0) {
-		char emsg[128];
+		char emsg[256];
 		regerror(ret, &r, emsg, sizeof(emsg));
 		diex("Failed to compile regex: %s", emsg);
 	}
