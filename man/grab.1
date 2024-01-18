@@ -1,4 +1,4 @@
-.Dd January 16 2024
+.Dd January 18 2024
 .Dt GRAB 1
 .Os
 .Sh NAME
@@ -6,14 +6,14 @@
 .Nd search for patterns in files
 .Sh SYNOPSIS
 .Nm
-.Op Fl cfnz
+.Op Fl cfnUz
 .Ar pattern
 .Op Ar
 .Nm
 .Fl h
 .Pp
 .Nm "git grab"
-.Op Fl cnz
+.Op Fl cnUz
 .Ar pattern
 .Op Ar glob ...
 .Nm "git grab"
@@ -95,15 +95,30 @@ no color will be output.
 Always prefix matches with the names of the files in which the matches
 were made,
 even if only 1 file was provided.
+.Pp
+This option is always enabled when using
+.Nm "git grab" .
 .It Fl h , Fl Fl help
 Display help information by opening this manual page.
 .It Fl n , Fl Fl newline
-Don’t match newline characters
-.Pq Sq \en
-with the dot
+Treat the newline as a special character by disallowing the dot
 .Pq Sq \&.
-operator in patterns,
-or in negated character-classes.
+wildcard from matching newlines in regular expressions.
+.Pp
+This option may behave strangely when
+.Nm
+is not compiled with PCRE support.
+See
+.Sx CAVEATS
+for more information.
+.It Fl U , Fl Fl no-unicode
+Don’t use Unicode properties when matching \ed, \ew, etc.
+Recognize only ASCII values instead.
+.Pp
+If
+.Nm
+is not compiled with PCRE support this option will cause the program to
+terminate with exit status 2.
 .It Fl z , Fl Fl zero
 Separate output data by null bytes
 .Pq Sq \e0
@@ -116,6 +131,22 @@ option,
 or if two or more files were provided as arguments,
 filenames and matches will be separated by null bytes instead of colons.
 .El
+.Ss Regular Expression Syntax
+By default
+.Nm
+supports Perl-compatible regular expressions
+.Pq Sq PCREs ,
+however it is possible to build and install
+.Nm
+without support for PCREs.
+When build without PCRE support,
+POSIX extended-regular-expressions are used instead.
+.Pp
+You should always assume that PCRE support is available,
+but if you would like to be absolutely sure you can check if the program
+terminates unsuccessfully when using the
+.Fl U
+option.
 .Ss Pattern Syntax
 A pattern is a sequences of commands optionally separated by whitespace.
 A command is an operator followed by a delimiter, a regular expression,
@@ -201,10 +232,26 @@ but only those which are being passed a
 property —
 searching all files in the current git-repository:
 .Pp
-.Dl $ git grab 'x/<hb-form-text[^>]+>/ g/\ebplaceholder\eb/' '*.vue'
+.Dl $ git grab 'x/<hb-form-text.+?>/ g/\ebplaceholder\eb/' '*.vue'
+.Pp
+Extract bibliographic references from
+.Xr mdoc 7
+formatted manual pages:
+.Pp
+.Dl $ grab -n 'x/(^\e.%.*\en)+/' foo.1 bar.1
+.Pp
+Extract the
+.Sx SYNOPSIS
+section from the given
+.Xr mdoc 7
+formatted manual pages:
+.Pp
+.Dl $ grab -n 'x/^\.Sh SYNOPSIS\en(^.*\en(?!^\e.Sh))+/' foo.1 bar.1
 .Sh SEE ALSO
 .Xr git-ls-files 1 ,
-.Xr grep 1
+.Xr grep 1 ,
+.Xr pcre2syntax 3 ,
+.Xr regex 7
 .Rs
 .%A Rob Pike
 .%D 1987
@@ -215,3 +262,28 @@ searching all files in the current git-repository:
 .Lk https://en.wikipedia.org/wiki/ANSI_escape_code#SGR "SGR Parameters"
 .Sh AUTHORS
 .An Thomas Voss Aq Mt mail@thomasvoss.com
+.Sh CAVEATS
+The behavior of negated character classes in regular expressions will
+vary when given the
+.Fl n
+option depending on if PCRE support is or isn’t available.
+.Pp
+When PCRE support is available and the
+.Fl n
+option is provided,
+the regular expression
+.Ql [^a]
+will nontheless match the newline character.
+When PCRE support is not available and the
+.Fl n
+option is provided,
+the newline will
+.Em not
+be matched by
+.Ql [^a] .
+.Sh BUGS
+When writing pattern matches to the standard output,
+.Nm
+appends a newline to the end of the match.
+This often results in non-ideal output as matched patterns are often
+already suffixed by a newline.
