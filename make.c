@@ -30,13 +30,12 @@
 
 static char *mkoutpath(const char *);
 
-static bool Pflag;
+static bool dflag, Pflag;
 
 int
 main(int argc, char **argv)
 {
 	int opt;
-	bool debug = false;
 	cmd_t c = {0};
 
 	cbsinit(argc, argv);
@@ -45,7 +44,7 @@ main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "dP")) != -1) {
 		switch (opt) {
 		case 'd':
-			debug = true;
+			dflag = true;
 			break;
 		case 'P':
 			Pflag = true;
@@ -79,7 +78,7 @@ main(int argc, char **argv)
 		struct strv cflags = {0};
 
 		env_or_default(&cc, "CC", CC);
-		if (debug)
+		if (dflag)
 			env_or_default(&cflags, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
 		else
 			env_or_default(&cflags, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
