@@ -91,8 +91,15 @@ main(int argc, char **argv)
 			cmdaddv(&c, cc.buf, cc.len);
 			cmdaddv(&c, cflags.buf, cflags.len);
 			cmdadd(&c, buf);
-			if (!Pflag)
-				cmdadd(&c, "-DGRAB_DO_PCRE=1", "-lpcre2-posix");
+			if (!Pflag) {
+				struct strv pc = {0};
+				cmdadd(&c, "-DGRAB_DO_PCRE=1");
+				if (pcquery(&pc, "libpcre2-posix", PKGC_CFLAGS | PKGC_LIBS))
+					cmdaddv(&c, pc.buf, pc.len);
+				else
+					cmdadd(&c, "-lpcre2-posix");
+				strvfree(&pc);
+			}
 			cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c");
 			cmdprc(c);
 		}
