@@ -12,7 +12,9 @@
 #	include <pcre2posix.h>
 #else
 #	include <regex.h>
-
+#	ifdef REG_DOTALL
+#		define REG_DOTALL 0
+#	endif
 #	define REG_UCP 0
 #	define REG_UTF 0
 #	ifndef REG_STARTEND
@@ -463,9 +465,7 @@ mkregex(char *s, size_t n)
 	regex_t r;
 
 	s[n] = 0;
-	cflags = REG_EXTENDED | REG_UTF;
-	if (nflag)
-		cflags |= REG_NEWLINE;
+	cflags = REG_EXTENDED | REG_UTF | (nflag ? REG_NEWLINE : REG_DOTALL);
 	if (!Uflag)
 		cflags |= REG_UCP;
 	if ((ret = regcomp(&r, s, cflags)) != 0) {
