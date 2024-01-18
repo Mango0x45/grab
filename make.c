@@ -1,12 +1,12 @@
 #include <errno.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "cbs.h"
+#include "src/compat.h"
 
 #define CC           "cc"
 #define CFLAGS       "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe"
@@ -85,9 +85,6 @@ main(int argc, char **argv)
 
 				cmdadd(&c, CC, CFLAGS);
 				cmdadd(&c, buf);
-#ifdef CBS_IS_C23
-				cmdadd(&c, "-DGRAB_IS_C23=1");
-#endif
 				if (pflag)
 					cmdadd(&c, "-DGRAB_DO_PCRE=1", "-lpcre2-posix");
 				if (debug)

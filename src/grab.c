@@ -7,11 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#if !GRAB_IS_C23
-#	include <assert.h>
-#	include <stdbool.h>
-#	define nullptr NULL
-#endif
 
 #if GRAB_DO_PCRE
 #	include <pcre2posix.h>
@@ -22,6 +17,7 @@
 #	endif
 #endif
 
+#include "compat.h"
 #include "da.h"
 
 #define die(...)  err(EXIT_FAILURE, __VA_ARGS__);
