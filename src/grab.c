@@ -3,7 +3,6 @@
 #include <libgen.h>
 #include <limits.h>
 #include <locale.h>
-#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,11 +13,16 @@
 #	define nullptr NULL
 #endif
 
-#include "da.h"
-
-#ifndef REG_STARTEND
-#	error "REG_STARTEND not defined"
+#if GRAB_DO_PCRE
+#	include <pcre2posix.h>
+#else
+#	include <regex.h>
+#	ifndef REG_STARTEND
+#		error "REG_STARTEND not defined"
+#	endif
 #endif
+
+#include "da.h"
 
 #define die(...)  err(EXIT_FAILURE, __VA_ARGS__);
 #define diex(...) errx(EXIT_FAILURE, __VA_ARGS__);

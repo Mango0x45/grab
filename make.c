@@ -33,6 +33,8 @@ static char *_mkoutpath(const char **, size_t);
 #define mkoutpath(...) \
 	_mkoutpath((const char **)_vtoa(__VA_ARGS__), lengthof(_vtoa(__VA_ARGS__)))
 
+static bool pflag;
+
 int
 main(int argc, char **argv)
 {
@@ -43,10 +45,13 @@ main(int argc, char **argv)
 	cbsinit(argc, argv);
 	rebuild();
 
-	while ((opt = getopt(argc, argv, "d")) != -1) {
+	while ((opt = getopt(argc, argv, "dp")) != -1) {
 		switch (opt) {
 		case 'd':
 			debug = true;
+			break;
+		case 'p':
+			pflag = true;
 			break;
 		default:
 			fputs("Usage: make [-d]\n", stderr);
@@ -83,6 +88,8 @@ main(int argc, char **argv)
 #ifdef CBS_IS_C23
 				cmdadd(&c, "-DGRAB_IS_C23=1");
 #endif
+				if (pflag)
+					cmdadd(&c, "-DGRAB_DO_PCRE=1", "-lpcre2-posix");
 				if (debug)
 					cmdadd(&c, CFLAGS_DEBUG);
 				else
