@@ -37,6 +37,11 @@
 #ifndef C_BUILD_SYSTEM_H
 #define C_BUILD_SYSTEM_H
 
+#ifdef __GNUC__
+#	pragma GCC diagnostic push
+#	pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 /* Assert that the user is building for a supported platform.  The only portable
    way to check for POSIX is to validate that unistd.h exists.  This is only
    possible without compiler extensions in C23 (although some compilers support
@@ -58,6 +63,8 @@
 #include <sys/wait.h>
 
 #include <errno.h>
+#include <libgen.h>
+#include <limits.h>
 #ifdef CBS_PTHREAD
 #	include <pthread.h>
 #endif
@@ -69,15 +76,14 @@
 #include <unistd.h>
 #include <wordexp.h>
 
-/* C23 changed a lot so we want to check for it, and some idiot decided that
-   __STDC_VERSION__ is an optional macro */
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000
-#	define CBS_IS_C23
+/* C23 changed a lot so we want to check for it */
+#if __STDC_VERSION__ >= 202000
+#	define CBS_IS_C23 1
 #endif
 
 /* Some C23 compat.  In C23 booleans are actual keywords, and the noreturn
    attribute is different. */
-#ifdef CBS_IS_C23
+#if CBS_IS_C23
 #	define noreturn [[noreturn]]
 #else
 #	include <stdbool.h>
@@ -87,7 +93,7 @@
 /* Give helpful diagnostics when people use die() incorrectly on GCC.  C23
    introduced C++ attribute syntax, so we need a check for that too. */
 #ifdef __GNUC__
-#	ifdef CBS_IS_C23
+#	if CBS_IS_C23
 #		define ATTR_FMT [[gnu::format(printf, 1, 2)]]
 #	else
 #		define ATTR_FMT __attribute__((format(printf, 1, 2)))
@@ -109,6 +115,18 @@
    access them from anywhere. */
 static int _cbs_argc;
 static char **_cbs_argv;
+
+/* A vector of strings used to accumulate output of functions such as pcquery().
+   The array of strings buf has length len, and is not null-terminated.  You
+   should always zero-initialize variables of this type. */
+struct strv {
+	char **buf;
+	size_t len;
+};
+
+/* Free and zero a string vector.  Because this function zeros the structure, it
+   is safe to reuse the vector after this function is called. */
+static void strvfree(struct strv *);
 
 /* A wrapper function around realloc().  It behaves exactly the same except
    instead of taking a buffer size as an argument, it takes a count n of
@@ -150,6 +168,10 @@ typedef struct {
 	size_t _len, _cap;
 } cmd_t;
 
+/* Returns whether or not a binary of the given name exists in the users
+   environment as defined by $PATH. */
+static bool binexists(const char *);
+
 /* cmdadd() adds the variadic string arguments to the given command.
    Alternatively, the cmdaddv() function adds the n strings pointed to by p to
    the given command. */
@@ -187,6 +209,16 @@ static int cmdwait(pid_t);
 static void cmdput(cmd_t);
 static void cmdputf(FILE *, cmd_t);
 
+/* Expand the environment variable s using /bin/sh expansion rules and store the
+   results in the given string vector.  If the environment variable is NULL or
+   empty, then store the strings specified by the array p of length n.
+
+   env_or_default() is the same as env_or_defaultv() but you provide p as
+   variadic arguments. */
+static void env_or_defaultv(struct strv *, const char *s, char **p, size_t n);
+#define env_or_default(sv, s, ...) \
+	env_or_defaultv((sv), (s), _vtoa(__VA_ARGS__), lengthof(_vtoa(__VA_ARGS__)))
+
 /* Returns if a file exists at the given path.  A return value of false may also
    mean you don’t have the proper file access permissions, which will also set
    errno. */
@@ -214,10 +246,10 @@ static bool foutdatedv(const char *base, const char **p, size_t n);
 	foutdatedv(s, (const char **)_vtoa(__VA_ARGS__), \
 	           lengthof(_vtoa(__VA_ARGS__)))
 
-/* Rebuild the build script if either it, or this header file have been
-   modified, and execute the newly built script.  You should call the rebuild()
-   macro at the very beginning of main(), but right after cbsinit().  You
-   probably don’t want to call _rebuild() directly. */
+/* Rebuild the build script if it has been modified, and execute the newly built
+   script.  You should call the rebuild() macro at the very beginning of main(),
+   but right after cbsinit().  You probably don’t want to call _rebuild()
+   directly. */
 static void _rebuild(char *);
 #define rebuild() _rebuild(__FILE__)
 
@@ -226,23 +258,17 @@ static void _rebuild(char *);
    case, errno will not be set. */
 static int nproc(void);
 
-/* Add the arguments returned by an invokation of pkg-config for the library lib
-   to the given command.  The flags argument is one-or-more of the flags in the
-   pkg_config_flags enum bitwise-ORed together.
+/* Append the arguments returned by an invokation of pkg-config for the library
+   lib to the given string vector.  The flags argument is one-or-more of the
+   flags in the pkg_config_flags enum bitwise-ORed together.
 
    If PKGC_CFLAGS is specified, call pkg-config with ‘--cflags’.
    If PKGC_LIBS is specified, call pkg-config with ‘--libs’.
 
    This function returns true on success and false if pkg-config is not found on
-   the system.  To check for pkg-configs existance without doing anything
-   meaningful, you can call this function with flags set to 0 and lib set to a
-   VALID library name.
-
-   The arguments this function appends to the given command are heap-allocated.
-   If you care about deallocating them, you can figure out their indicies in
-   the commands ._argv field by getting cmd._len both before and after calling
-   this function. */
-static bool pcquery(cmd_t *, char *lib, int flags);
+   the system.  To check for pkg-configs existance, you can use the binexists()
+   function. */
+static bool pcquery(struct strv *, char *lib, int flags);
 enum pkg_config_flags {
 	PKGC_LIBS = 1 << 0,
 	PKGC_CFLAGS = 1 << 1,
@@ -305,6 +331,13 @@ static struct _tjob *_tpdeq(tpool_t *);
 
 /* BEGIN DEFINITIONS */
 
+void
+strvfree(struct strv *v)
+{
+	free(v->buf);
+	*v = (struct strv){0};
+}
+
 void *
 bufalloc(void *p, size_t n, size_t m)
 {
@@ -352,7 +385,14 @@ void
 cbsinit(int argc, char **argv)
 {
 	_cbs_argc = argc;
-	_cbs_argv = argv;
+	_cbs_argv = bufalloc(NULL, argc, sizeof(char *));
+	for (int i = 0; i < argc; i++) {
+		if (!(_cbs_argv[i] = strdup(argv[i]))) {
+			/* We might not have set _cbs_argv[0] yet, so we can’t use die() */
+			fprintf(stderr, "%s: strdup: %s\n", *argv, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}
 }
 
 static size_t
@@ -365,6 +405,32 @@ _next_powerof2(size_t n)
 	for (size_t i = 1; i < sizeof(size_t); i <<= 1)
 		n |= n >> i;
 	return n + 1;
+}
+
+bool
+binexists(const char *name)
+{
+	char *p, *path;
+
+	if (!(path = getenv("PATH")))
+		diex("PATH environment variable not found");
+
+	if (!(path = strdup(path)))
+		die("strdup");
+	p = strtok(path, ":");
+	while (p) {
+		char buf[PATH_MAX];
+		snprintf(buf, sizeof(buf), "%s/%s", p, name);
+		if (fexists(buf)) {
+			free(path);
+			return true;
+		}
+
+		p = strtok(NULL, ":");
+	}
+
+	free(path);
+	return false;
 }
 
 void
@@ -530,6 +596,41 @@ cmdputf(FILE *stream, cmd_t cmd)
 	funlockfile(stream);
 }
 
+void
+env_or_defaultv(struct strv *sv, const char *s, char **p, size_t n)
+{
+	wordexp_t we;
+	const char *ev;
+
+	if ((ev = getenv(s)) && *ev) {
+		switch (wordexp(ev, &we, WRDE_NOCMD)) {
+		case WRDE_BADCHAR:
+		case WRDE_BADVAL:
+		case WRDE_SYNTAX:
+			errno = EINVAL;
+			die("wordexp");
+		case WRDE_NOSPACE:
+			errno = ENOMEM;
+			die("wordexp");
+		}
+
+		sv->buf = bufalloc(NULL, we.we_wordc, sizeof(*sv->buf));
+		for (size_t i = 0; i < we.we_wordc; i++) {
+			if (!(sv->buf[i] = strdup(we.we_wordv[i])))
+				die("strdup");
+		}
+		sv->len = we.we_wordc;
+		wordfree(&we);
+	} else {
+		sv->buf = bufalloc(NULL, n, sizeof(*sv->buf));
+		for (size_t i = 0; i < n; i++) {
+			if (!(sv->buf[i] = strdup(p[i])))
+				die("strdup");
+		}
+		sv->len = n;
+	}
+}
+
 bool
 fexists(const char *f)
 {
@@ -575,24 +676,63 @@ foutdatedv(const char *src, const char **deps, size_t n)
 	return false;
 }
 
+static char *
+_getcwd(void)
+{
+	char *buf = NULL;
+	size_t n = 0;
+
+	for (;;) {
+		n += PATH_MAX;
+		buf = bufalloc(buf, n, sizeof(char));
+		if (getcwd(buf, n))
+			break;
+		if (errno != ERANGE)
+			die("getcwd");
+	}
+
+	return buf;
+}
+
 void
 _rebuild(char *src)
 {
+	char *cwd, *cpy1, *cpy2, *dn, *bn;
 	cmd_t cmd = {0};
 
-	if (fmdnewer(*_cbs_argv, src) && fmdnewer(*_cbs_argv, __FILE__))
+	cwd = _getcwd();
+	if (!(cpy1 = strdup(*_cbs_argv)))
+		die("strdup");
+	if (!(cpy2 = strdup(*_cbs_argv)))
+		die("strdup");
+	dn = dirname(cpy1);
+	bn = basename(cpy2);
+
+	if (chdir(dn) == -1)
+		die("chdir: %s", dn);
+	if (!foutdated(bn, src)) {
+		if (chdir(cwd) == -1)
+			die("chdir: %s", cwd);
+		free(cpy1);
+		free(cpy2);
+		free(cwd);
 		return;
+	}
 
 	cmdadd(&cmd, "cc");
 #ifdef CBS_PTHREAD
 	cmdadd(&cmd, "-lpthread");
 #endif
-	cmdadd(&cmd, "-o", *_cbs_argv, src);
+	cmdadd(&cmd, "-o", bn, src);
 	cmdput(cmd);
 	if (cmdexec(cmd))
 		diex("Compilation of build script failed");
 
 	cmdclr(&cmd);
+
+	if (chdir(cwd) == -1)
+		die("chdir: %s", cwd);
+
 	cmdaddv(&cmd, _cbs_argv, _cbs_argc);
 	execvp(*cmd._argv, cmd._argv);
 	die("execvp: %s", *cmd._argv);
@@ -610,7 +750,7 @@ nproc(void)
 }
 
 bool
-pcquery(cmd_t *cmd, char *lib, int flags)
+pcquery(struct strv *vec, char *lib, int flags)
 {
 	int ec;
 	char *p;
@@ -641,7 +781,7 @@ pcquery(cmd_t *cmd, char *lib, int flags)
 	/* Remove trailing newline */
 	p[n - 1] = 0;
 
-	switch (wordexp(p, &we, 0)) {
+	switch (wordexp(p, &we, WRDE_NOCMD)) {
 	case WRDE_BADCHAR:
 	case WRDE_BADVAL:
 	case WRDE_SYNTAX:
@@ -652,11 +792,12 @@ pcquery(cmd_t *cmd, char *lib, int flags)
 		die("wordexp");
 	}
 
+	vec->buf = bufalloc(vec->buf, vec->len + we.we_wordc, sizeof(char *));
 	for (size_t i = 0; i < we.we_wordc; i++) {
 		char *p = strdup(we.we_wordv[i]);
 		if (!p)
 			die(__func__);
-		cmdadd(cmd, p);
+		vec->buf[vec->len++] = p;
 	}
 
 	wordfree(&we);
@@ -783,5 +924,13 @@ tpwait(tpool_t *tp)
 }
 
 #endif /* CBS_PTHREAD */
+
+#ifdef __GNUC__
+#	pragma GCC diagnostic pop
+#endif
+
+#ifdef __APPLE__
+#	undef st_mtim
+#endif
 
 #endif /* !C_BUILD_SYSTEM_H */
