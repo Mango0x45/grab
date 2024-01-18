@@ -17,6 +17,14 @@ $ ./make  # Build the project
 $ ./make install  # Install the project
 ```
 
+By default Grab is linked against the PCRE2 library for PCRE support.  If
+you prefer to simply use POSIX EREs, you can pass `--no-pcre` to the
+build script:
+
+```sh
+$ ./make --no-pcre
+```
+
 
 ## Description
 
