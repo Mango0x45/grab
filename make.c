@@ -80,21 +80,19 @@ main(int argc, char **argv)
 			cmdprc(c);
 		}
 	} else {
-		struct strv cc = {0};
-		struct strv cflags = {0};
+		struct strv sv = {0};
 
-		env_or_default(&cc, "CC", CC);
+		env_or_default(&sv, "CC", CC);
 		if (dflag)
-			env_or_default(&cflags, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
+			env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
 		else
-			env_or_default(&cflags, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
+			env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
 
 		for (int i = 0; i < 2; i++) {
 			char buf[] = "-DGIT_GRAB=X";
 			buf[sizeof(buf) - 2] = i + '0';
 
-			cmdaddv(&c, cc.buf, cc.len);
-			cmdaddv(&c, cflags.buf, cflags.len);
+			cmdaddv(&c, sv.buf, sv.len);
 			cmdadd(&c, buf);
 			if (!Pflag) {
 				struct strv pc = {0};
@@ -109,8 +107,7 @@ main(int argc, char **argv)
 			cmdprc(c);
 		}
 
-		strvfree(&cc);
-		strvfree(&cflags);
+		strvfree(&sv);
 	}
 
 	return EXIT_SUCCESS;
