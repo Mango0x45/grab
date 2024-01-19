@@ -66,7 +66,7 @@ main(int argc, char **argv)
 
 	if (argc > 0) {
 		if (streq(*argv, "clean")) {
-			cmdadd(&c, "rm", "-f", "grab");
+			cmdadd(&c, "rm", "-f", "grab", "git-grab");
 			cmdprc(c);
 		} else if (streq(*argv, "install")) {
 			char *bin, *man;
