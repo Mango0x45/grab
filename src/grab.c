@@ -303,18 +303,18 @@ void
 cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
 	int r;
-	regmatch_t pm = {
+	regmatch_t rm = {
 		.rm_so = 0,
 		.rm_eo = sv.len,
 	};
 	struct op op = ops.buf[i];
 
-	r = regexec(&op.pat, sv.p, 1, &pm, REG_STARTEND);
+	r = regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND);
 	if ((r == REG_NOMATCH && op.c == 'g') || (r != REG_NOMATCH && op.c == 'v'))
 		return;
 
 	if (i + 1 == ops.len)
-		putm(sv, op.c == 'g' ? &pm : nullptr, filename);
+		putm(sv, op.c == 'g' ? &rm : nullptr, filename);
 	else
 		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1, filename);
 }
@@ -322,7 +322,7 @@ cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 void
 cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
-	regmatch_t pm = {
+	regmatch_t rm = {
 		.rm_so = 0,
 		.rm_eo = sv.len,
 	};
@@ -331,27 +331,27 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 	do {
 		struct sv nsv;
 
-		if (regexec(&op.pat, sv.p, 1, &pm, REG_STARTEND) == REG_NOMATCH)
+		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
 			break;
-		nsv = (struct sv){.p = sv.p + pm.rm_so, .len = pm.rm_eo - pm.rm_so};
+		nsv = (struct sv){.p = sv.p + rm.rm_so, .len = rm.rm_eo - rm.rm_so};
 		if (i + 1 == ops.len)
 			putm(nsv, nullptr, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 
-		if (pm.rm_so == pm.rm_eo)
-			pm.rm_eo++;
-		pm = (regmatch_t){
-			.rm_so = pm.rm_eo,
+		if (rm.rm_so == rm.rm_eo)
+			rm.rm_eo++;
+		rm = (regmatch_t){
+			.rm_so = rm.rm_eo,
 			.rm_eo = sv.len,
 		};
-	} while (pm.rm_so < pm.rm_eo);
+	} while (rm.rm_so < rm.rm_eo);
 }
 
 void
 cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
-	regmatch_t pm = {
+	regmatch_t rm = {
 		.rm_so = 0,
 		.rm_eo = sv.len,
 	};
@@ -364,13 +364,13 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 	do {
 		struct sv nsv;
 
-		if (regexec(&op.pat, sv.p, 1, &pm, REG_STARTEND) == REG_NOMATCH)
+		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
 			break;
 
-		if (prev.rm_so || prev.rm_eo || pm.rm_so) {
+		if (prev.rm_so || prev.rm_eo || rm.rm_so) {
 			nsv = (struct sv){
 				.p = sv.p + prev.rm_eo,
-				.len = pm.rm_so - prev.rm_eo,
+				.len = rm.rm_so - prev.rm_eo,
 			};
 			if (i + 1 == ops.len)
 				putm(nsv, nullptr, filename);
@@ -378,19 +378,19 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 		}
 
-		prev = pm;
-		if (pm.rm_so == pm.rm_eo)
-			pm.rm_eo++;
-		pm = (regmatch_t){
-			.rm_so = pm.rm_eo,
+		prev = rm;
+		if (rm.rm_so == rm.rm_eo)
+			rm.rm_eo++;
+		rm = (regmatch_t){
+			.rm_so = rm.rm_eo,
 			.rm_eo = sv.len,
 		};
-	} while (pm.rm_so < pm.rm_eo);
+	} while (rm.rm_so < rm.rm_eo);
 
-	if (prev.rm_eo < pm.rm_eo) {
+	if (prev.rm_eo < rm.rm_eo) {
 		struct sv nsv = {
-			.p = sv.p + pm.rm_so,
-			.len = pm.rm_eo - pm.rm_so,
+			.p = sv.p + rm.rm_so,
+			.len = rm.rm_eo - rm.rm_so,
 		};
 		if (i + 1 == ops.len)
 			putm(nsv, nullptr, filename);
