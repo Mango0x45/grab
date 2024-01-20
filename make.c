@@ -6,6 +6,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#if defined(__has_include) && __has_include(<features.h>)
+#	include <features.h>
+#endif
+
+#ifdef __GLIBC__
+#	define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "cbs.h"
 #include "src/compat.h"
 
@@ -93,6 +101,9 @@ main(int argc, char **argv)
 			buf[sizeof(buf) - 2] = i + '0';
 
 			cmdaddv(&c, sv.buf, sv.len);
+#ifdef __GLIBC__
+			cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
+#endif
 			cmdadd(&c, buf);
 			if (!Pflag) {
 				struct strv pc = {0};
