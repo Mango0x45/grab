@@ -50,11 +50,6 @@ struct ops {
 	size_t len, cap;
 };
 
-struct chars {
-	char *buf;
-	size_t len, cap;
-};
-
 struct sv {
 	char *p;
 	size_t len;
@@ -276,7 +271,10 @@ void
 grab(struct ops ops, FILE *stream, const char *filename)
 {
 	size_t n;
-	struct chars chars = {0};
+	struct {
+		char *buf;
+		size_t len, cap;
+	} chars = {0};
 
 	do {
 		static_assert(sizeof(char) == 1, "sizeof(char) != 1; wtf?");
