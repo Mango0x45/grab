@@ -477,7 +477,7 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 		} else
 			printf("%s%c", filename, sep);
 	}
-	if (rm) {
+	if (cflag && rm) {
 		fwrite(sv.p, 1, rm->rm_so, stdout);
 		printf("\33[%sm%.*s\33[0m", ma, (int)(rm->rm_eo - rm->rm_so),
 		       sv.p + rm->rm_so);
