@@ -37,6 +37,7 @@
 #define EEARLY "Input string terminated prematurely"
 
 #define DEFCOL_FN "35"
+#define DEFCOL_LN "32"
 #define DEFCOL_MA "01;31"
 #define DEFCOL_SE "36"
 
@@ -51,7 +52,7 @@ struct ops {
 };
 
 struct sv {
-	char *p;
+	char *bp, *p;
 	size_t len;
 };
 
@@ -288,6 +289,7 @@ grab(struct ops ops, FILE *stream, const char *filename)
 		warn("fread: %s", filename);
 	else {
 		struct sv sv = {
+			.bp = chars.buf,
 			.p = chars.buf,
 			.len = chars.len,
 		};
@@ -331,7 +333,11 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 
 		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
 			break;
-		nsv = (struct sv){.p = sv.p + rm.rm_so, .len = rm.rm_eo - rm.rm_so};
+		nsv = (struct sv){
+			.bp = sv.bp,
+			.p = sv.p + rm.rm_so,
+			.len = rm.rm_eo - rm.rm_so,
+		};
 		if (i + 1 == ops.len)
 			putm(nsv, nullptr, filename);
 		else
@@ -367,6 +373,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 
 		if (prev.rm_so || prev.rm_eo || rm.rm_so) {
 			nsv = (struct sv){
+				.bp = sv.bp,
 				.p = sv.p + prev.rm_eo,
 				.len = rm.rm_so - prev.rm_eo,
 			};
@@ -387,6 +394,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 
 	if (prev.rm_eo < rm.rm_eo) {
 		struct sv nsv = {
+			.bp = sv.bp,
 			.p = sv.p + rm.rm_so,
 			.len = rm.rm_eo - rm.rm_so,
 		};
@@ -400,19 +408,21 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 void
 putm(struct sv sv, regmatch_t *rm, const char *filename)
 {
-	static const char *fn, *ma, *se;
+	static const char *fn, *ln, *ma, *se;
 
 	if (cflag && !fn) {
 		char *optstr;
 		if ((optstr = env_or_default("GRAB_COLORS", nullptr))) {
 			enum {
 				OPT_FN,
+				OPT_LN,
 				OPT_MA,
 				OPT_SE,
 			};
 			/* clang-format off */
 			static char *const tokens[] = {
 				[OPT_FN] = "fn",
+				[OPT_LN] = "ln",
 				[OPT_MA] = "ma",
 				[OPT_SE] = "se",
 				nullptr
@@ -423,6 +433,10 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 				char *val;
 				switch (getsubopt(&optstr, tokens, &val)) {
 				case OPT_FN:
+					if (sgrvalid(val))
+						fn = val;
+					break;
+				case OPT_LN:
 					if (sgrvalid(val))
 						fn = val;
 					break;
@@ -443,6 +457,8 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 
 		if (!fn)
 			fn = DEFCOL_FN;
+		if (!ln)
+			ln = DEFCOL_LN;
 		if (!ma)
 			ma = DEFCOL_MA;
 		if (!se)
@@ -450,11 +466,16 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 	}
 
 	if (fflag || filecnt > 1) {
+		char sep = zflag ? '\0' : ':';
 		if (cflag) {
-			printf("\33[%sm%s\33[%sm%c\33[0m", fn, filename, se,
-			       zflag ? '\0' : ':');
+			printf("\33[%sm%s\33[0m"  /* filename */
+			       "\33[%sm%c\33[0m"  /* separator */
+			       "\33[%sm%td\33[0m" /* byte offset */
+			       "\33[%sm%c\33[0m"  /* separator */
+			       ,
+			       fn, filename, se, sep, ln, sv.p - sv.bp, se, sep);
 		} else
-			printf("%s%c", filename, zflag ? '\0' : ':');
+			printf("%s%c", filename, sep);
 	}
 	if (rm) {
 		fwrite(sv.p, 1, rm->rm_so, stdout);

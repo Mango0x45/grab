@@ -212,6 +212,9 @@ The keys are as follows:
 .Bl -tag -compact
 .It fn
 filenames prefixing any content line.
+.It ln
+line- and column-numbers,
+as well as byte offsets when reporting the location of a match.
 .It ma
 text matched by a
 .Sq g
@@ -223,7 +226,7 @@ separators inserted between filenames and content lines.
 .El
 .Pp
 The default value is
-.Sq fn=35,ma=01;31,se=36
+.Sq fn=35,ln=32,ma=01;31,se=36
 .It Ev NO_COLOR
 Do not display any colored output when set to a non-empty string,
 even if the standard-output is a terminal.
