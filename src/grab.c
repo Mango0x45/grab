@@ -80,7 +80,7 @@ static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool cflag, nflag, Uflag, zflag;
+static bool cflag, nflag, sflag, Uflag, zflag;
 static bool fflag =
 #if GIT_GRAB
 	true;
@@ -100,9 +100,9 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-cnUz] pattern [glob ...]\n"
+	        "Usage: %s [-s | -z] [-cnU] pattern [glob ...]\n"
 #else
-	        "Usage: %s [-cfnUz] pattern [file ...]\n"
+	        "Usage: %s [-s | -z] [-cfnU] pattern [file ...]\n"
 #endif
 	        "       %s -h\n",
 	        s, s);
@@ -115,15 +115,16 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
-		{"color",      no_argument, 0, 'c'},
+		{"color",         no_argument, nullptr, 'c'},
 #if GIT_GRAB
-		{"filenames",  no_argument, 0, 'f'},
+		{"filenames",     no_argument, nullptr, 'f'},
 #endif
-		{"help",       no_argument, 0, 'h'},
-		{"newline",    no_argument, 0, 'n'},
-		{"no-unicode", no_argument, 0, 'U'},
-		{"zero",       no_argument, 0, 'z'},
-		{nullptr,      0,           0, 0  },
+		{"help",          no_argument, nullptr, 'h'},
+		{"newline",       no_argument, nullptr, 'n'},
+		{"strip-newline", no_argument, nullptr, 's'},
+		{"no-unicode",    no_argument, nullptr, 'U'},
+		{"zero",          no_argument, nullptr, 'z'},
+		{nullptr,         0,           nullptr, 0  },
 	};
 
 #if GIT_GRAB
@@ -131,9 +132,9 @@ main(int argc, char **argv)
 	size_t len;
 	ssize_t nr;
 	FILE *flist;
-	const char *opts = "chnUz";
+	const char *opts = "chnsUz";
 #else
-	const char *opts = "cfhnUz";
+	const char *opts = "cfhnsUz";
 #endif
 
 	argv[0] = basename(argv[0]);
@@ -155,6 +156,9 @@ main(int argc, char **argv)
 		case 'n':
 			nflag = true;
 			break;
+		case 's':
+			sflag = true;
+			break;
 		case 'U':
 #if GRAB_DO_PCRE
 			Uflag = true;
@@ -172,6 +176,9 @@ main(int argc, char **argv)
 			usage(argv[0]);
 		}
 	}
+
+	if (sflag && zflag)
+		usage(argv[0]);
 
 	argc -= optind;
 	argv += optind;
@@ -441,7 +448,8 @@ putm(struct sv sv, const char *filename)
 			printf("%s%c", filename, zflag ? '\0' : ':');
 	}
 	fwrite(sv.p, 1, sv.len, stdout);
-	putchar(zflag ? '\0' : '\n');
+	if (!(sflag && sv.p[sv.len - 1] == '\n'))
+		putchar(zflag ? '\0' : '\n');
 }
 
 bool

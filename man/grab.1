@@ -6,14 +6,16 @@
 .Nd search for patterns in files
 .Sh SYNOPSIS
 .Nm
-.Op Fl cfnUz
+.Op Fl s | z
+.Op Fl cfnU
 .Ar pattern
 .Op Ar
 .Nm
 .Fl h
 .Pp
 .Nm "git grab"
-.Op Fl cnUz
+.Op Fl s | z
+.Op Fl cnU
 .Ar pattern
 .Op Ar glob ...
 .Nm "git grab"
@@ -111,6 +113,16 @@ is not compiled with PCRE support.
 See
 .Sx CAVEATS
 for more information.
+.It Fl s , Fl Fl strip\-newline
+Don’t print a newline at the end of a match if the match already ends in
+a newline.
+This can make output seem more
+.Sq natural ,
+as many matches will already have terminating newlines.
+.Pp
+This option is mutually exclusive with the
+.Fl z
+option.
 .It Fl U , Fl Fl no\-unicode
 Don’t use Unicode properties when matching \ed, \ew, etc.
 Recognize only ASCII values instead.
@@ -130,6 +142,10 @@ If combined with the
 option,
 or if two or more files were provided as arguments,
 filenames and matches will be separated by null bytes instead of colons.
+.Pp
+This option is mutually exclusive with the
+.Fl s
+option.
 .El
 .Ss Regular Expression Syntax
 By default
