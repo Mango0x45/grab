@@ -37,6 +37,7 @@
 #define EEARLY "Input string terminated prematurely"
 
 #define DEFCOL_FN "35"
+#define DEFCOL_MA "01;31"
 #define DEFCOL_SE "36"
 
 struct op {
@@ -67,7 +68,7 @@ static void cmdx(struct sv, struct ops, size_t, const char *);
 static void cmdy(struct sv, struct ops, size_t, const char *);
 
 static void grab(struct ops, FILE *, const char *);
-static void putm(struct sv, const char *);
+static void putm(struct sv, regmatch_t, const char *);
 static bool sgrvalid(const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
@@ -313,7 +314,7 @@ cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 		return;
 
 	if (i + 1 == ops.len)
-		putm(sv, filename);
+		putm(sv, pm, filename);
 	else
 		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1, filename);
 }
@@ -334,7 +335,7 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 			break;
 		nsv = (struct sv){.p = sv.p + pm.rm_so, .len = pm.rm_eo - pm.rm_so};
 		if (i + 1 == ops.len)
-			putm(nsv, filename);
+			putm(nsv, pm, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 
@@ -372,7 +373,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 				.len = pm.rm_so - prev.rm_eo,
 			};
 			if (i + 1 == ops.len)
-				putm(nsv, filename);
+				putm(nsv, pm, filename);
 			else
 				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 		}
@@ -392,27 +393,29 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 			.len = pm.rm_eo - pm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putm(nsv, filename);
+			putm(nsv, pm, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 	}
 }
 
 void
-putm(struct sv sv, const char *filename)
+putm(struct sv sv, regmatch_t rm, const char *filename)
 {
-	static const char *fn, *se;
+	static const char *fn, *ma, *se;
 
 	if (cflag && !fn) {
 		char *optstr;
 		if ((optstr = env_or_default("GRAB_COLORS", nullptr))) {
 			enum {
 				OPT_FN,
+				OPT_MA,
 				OPT_SE,
 			};
 			/* clang-format off */
 			static char *const tokens[] = {
 				[OPT_FN] = "fn",
+				[OPT_MA] = "ma",
 				[OPT_SE] = "se",
 				nullptr
 			};
@@ -422,10 +425,16 @@ putm(struct sv sv, const char *filename)
 				char *val;
 				switch (getsubopt(&optstr, tokens, &val)) {
 				case OPT_FN:
-					fn = sgrvalid(val) ? val : DEFCOL_FN;
+					if (sgrvalid(val))
+							fn = val;
+					break;
+				case OPT_MA:
+					if (sgrvalid(val))
+							ma = val;
 					break;
 				case OPT_SE:
-					se = sgrvalid(val) ? val : DEFCOL_SE;
+					if (sgrvalid(val))
+							se = val;
 					break;
 				default:
 					warnx("invalid color value -- '%s'", val);
@@ -436,6 +445,8 @@ putm(struct sv sv, const char *filename)
 
 		if (!fn)
 			fn = DEFCOL_FN;
+		if (!ma)
+			ma = DEFCOL_MA;
 		if (!se)
 			se = DEFCOL_SE;
 	}
@@ -447,7 +458,14 @@ putm(struct sv sv, const char *filename)
 		} else
 			printf("%s%c", filename, zflag ? '\0' : ':');
 	}
-	fwrite(sv.p, 1, sv.len, stdout);
+	if ((size_t)(rm.rm_eo - rm.rm_so) == sv.len)
+		fwrite(sv.p, 1, sv.len, stdout);
+	else {
+		fwrite(sv.p, 1, rm.rm_so, stdout);
+		printf("\33[%sm%.*s\33[0m", ma, (int)(rm.rm_eo - rm.rm_so),
+		       sv.p + rm.rm_so);
+		fwrite(sv.p + rm.rm_eo, 1, sv.len - rm.rm_eo, stdout);
+	}
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))
 		putchar(zflag ? '\0' : '\n');
 }
