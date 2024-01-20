@@ -68,7 +68,7 @@ static void cmdx(struct sv, struct ops, size_t, const char *);
 static void cmdy(struct sv, struct ops, size_t, const char *);
 
 static void grab(struct ops, FILE *, const char *);
-static void putm(struct sv, regmatch_t, const char *);
+static void putm(struct sv, regmatch_t *, const char *);
 static bool sgrvalid(const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
@@ -314,7 +314,7 @@ cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 		return;
 
 	if (i + 1 == ops.len)
-		putm(sv, pm, filename);
+		putm(sv, op.c == 'g' ? &pm : nullptr, filename);
 	else
 		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1, filename);
 }
@@ -335,7 +335,7 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 			break;
 		nsv = (struct sv){.p = sv.p + pm.rm_so, .len = pm.rm_eo - pm.rm_so};
 		if (i + 1 == ops.len)
-			putm(nsv, pm, filename);
+			putm(nsv, nullptr, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 
@@ -373,7 +373,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 				.len = pm.rm_so - prev.rm_eo,
 			};
 			if (i + 1 == ops.len)
-				putm(nsv, pm, filename);
+				putm(nsv, nullptr, filename);
 			else
 				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 		}
@@ -393,14 +393,14 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 			.len = pm.rm_eo - pm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putm(nsv, pm, filename);
+			putm(nsv, nullptr, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 	}
 }
 
 void
-putm(struct sv sv, regmatch_t rm, const char *filename)
+putm(struct sv sv, regmatch_t *rm, const char *filename)
 {
 	static const char *fn, *ma, *se;
 
@@ -426,15 +426,15 @@ putm(struct sv sv, regmatch_t rm, const char *filename)
 				switch (getsubopt(&optstr, tokens, &val)) {
 				case OPT_FN:
 					if (sgrvalid(val))
-							fn = val;
+						fn = val;
 					break;
 				case OPT_MA:
 					if (sgrvalid(val))
-							ma = val;
+						ma = val;
 					break;
 				case OPT_SE:
 					if (sgrvalid(val))
-							se = val;
+						se = val;
 					break;
 				default:
 					warnx("invalid color value -- '%s'", val);
@@ -458,14 +458,13 @@ putm(struct sv sv, regmatch_t rm, const char *filename)
 		} else
 			printf("%s%c", filename, zflag ? '\0' : ':');
 	}
-	if ((size_t)(rm.rm_eo - rm.rm_so) == sv.len)
+	if (rm) {
+		fwrite(sv.p, 1, rm->rm_so, stdout);
+		printf("\33[%sm%.*s\33[0m", ma, (int)(rm->rm_eo - rm->rm_so),
+		       sv.p + rm->rm_so);
+		fwrite(sv.p + rm->rm_eo, 1, sv.len - rm->rm_eo, stdout);
+	} else
 		fwrite(sv.p, 1, sv.len, stdout);
-	else {
-		fwrite(sv.p, 1, rm.rm_so, stdout);
-		printf("\33[%sm%.*s\33[0m", ma, (int)(rm.rm_eo - rm.rm_so),
-		       sv.p + rm.rm_so);
-		fwrite(sv.p + rm.rm_eo, 1, sv.len - rm.rm_eo, stdout);
-	}
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))
 		putchar(zflag ? '\0' : '\n');
 }
