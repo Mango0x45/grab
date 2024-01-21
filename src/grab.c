@@ -71,17 +71,17 @@ static void cmdy(struct sv, struct ops, size_t, const char *);
 static void putm(struct sv, regmatch_t *, const char *);
 static void putm_nc(struct sv, regmatch_t *, const char *);
 
-static void grab(struct ops, FILE *, const char *);
-static bool sgrvalid(const char *);
-static regex_t mkregex(char *, size_t);
-static struct ops comppat(char *);
-static char *env_or_default(const char *, const char *);
 #if GIT_GRAB
 static FILE *getfstream(int n, char *v[n]);
 #endif
-
+static void grab(struct ops, FILE *, const char *);
+static struct ops comppat(char *);
+static regex_t mkregex(char *, size_t);
+static bool islbrk(struct u8view);
+static bool sgrvalid(const char *);
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
+static char *env_or_default(const char *, const char *);
 
 static int filecnt, rv;
 static bool bflag, cflag, nflag, sflag, Uflag, zflag;
@@ -499,7 +499,7 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 			len = (char8_t *)sv.p - pos.p;
 
 			while (u8gnext(&v, &pos.p, &len)) {
-				if (*v.p == '\n' || memeq(v.p, "\r\n", 2)) {
+				if (islbrk(v)) {
 					pos.col = 1;
 					pos.row++;
 				} else
@@ -552,7 +552,7 @@ putm_nc(struct sv sv, regmatch_t *rm, const char *filename)
 			len = (char8_t *)sv.p - pos.p;
 
 			while (u8gnext(&v, &pos.p, &len)) {
-				if (*v.p == '\n' || memeq(v.p, "\r\n", 2)) {
+				if (islbrk(v)) {
 					pos.col = 1;
 					pos.row++;
 				} else
@@ -565,6 +565,12 @@ putm_nc(struct sv sv, regmatch_t *rm, const char *filename)
 	fwrite(sv.p, 1, sv.len, stdout);
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))
 		putchar(zflag ? '\0' : '\n');
+}
+
+bool
+islbrk(struct u8view v)
+{
+	return *v.p == '\n' || (v.len == 2 && memeq(v.p, "\r\n", 2));
 }
 
 bool
