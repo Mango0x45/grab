@@ -509,8 +509,7 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 			printf("\33[%sm%zu\33[0m" /* row */
 			       "\33[%sm%c\33[0m"  /* separator */
 			       "\33[%sm%zu\33[0m" /* column */
-			       "\33[%sm%c\33[0m"  /* separator */
-			       ,
+			       "\33[%sm%c\33[0m", /* separator */
 			       ln, pos.row, se, sep, ln, pos.col, se, sep);
 		}
 	}
