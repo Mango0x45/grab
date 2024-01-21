@@ -22,6 +22,8 @@
 #	endif
 #endif
 
+#include <gbrk.h>
+
 #include "compat.h"
 #include "da.h"
 
@@ -32,7 +34,9 @@
 		warn(__VA_ARGS__); \
 		rv = EXIT_FAILURE; \
 	} while (0)
-#define streq(a, b) (!strcmp(a, b))
+
+#define streq(a, b)    (!strcmp(a, b))
+#define memeq(a, b, n) (!memcmp(a, b, n))
 
 #define EEARLY "Input string terminated prematurely"
 
@@ -80,7 +84,7 @@ static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
-static bool cflag, nflag, sflag, Uflag, zflag;
+static bool bflag, cflag, nflag, sflag, Uflag, zflag;
 static bool fflag = GIT_GRAB;
 static put_func putf = putm;
 
@@ -96,9 +100,9 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-s | -z] [-cnU] pattern [glob ...]\n"
+	        "Usage: %s [-s | -z] [-bcnU] pattern [glob ...]\n"
 #else
-	        "Usage: %s [-s | -z] [-cfnU] pattern [file ...]\n"
+	        "Usage: %s [-s | -z] [-bcfnU] pattern [file ...]\n"
 #endif
 	        "       %s -h\n",
 	        s, s);
@@ -111,6 +115,7 @@ main(int argc, char **argv)
 	int opt;
 	struct ops ops;
 	struct option longopts[] = {
+		{"byte-offset",   no_argument, nullptr, 'b'},
 		{"color",         no_argument, nullptr, 'c'},
 #if GIT_GRAB
 		{"filenames",     no_argument, nullptr, 'f'},
@@ -128,9 +133,9 @@ main(int argc, char **argv)
 	size_t len;
 	ssize_t nr;
 	FILE *flist;
-	const char *opts = "chnsUz";
+	const char *opts = "bchnsUz";
 #else
-	const char *opts = "cfhnsUz";
+	const char *opts = "bcfhnsUz";
 #endif
 
 	argv[0] = basename(argv[0]);
@@ -141,6 +146,9 @@ main(int argc, char **argv)
 
 	while ((opt = getopt_long(argc, argv, opts, longopts, nullptr)) != -1) {
 		switch (opt) {
+		case 'b':
+			bflag = true;
+			break;
 		case 'c':
 			cflag = true;
 			break;
@@ -410,6 +418,13 @@ void
 putm(struct sv sv, regmatch_t *rm, const char *filename)
 {
 	static const char *fn, *ln, *ma, *se;
+	static struct {
+		const char8_t *p;
+		size_t col, row;
+	} pos = {
+		.col = 1,
+		.row = 1,
+	};
 
 	if (cflag && !fn) {
 		char *optstr;
@@ -469,11 +484,36 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 	if (fflag || filecnt > 1) {
 		char sep = zflag ? '\0' : ':';
 		printf("\33[%sm%s\33[0m"  /* filename */
-		       "\33[%sm%c\33[0m"  /* separator */
-		       "\33[%sm%td\33[0m" /* byte offset */
-		       "\33[%sm%c\33[0m"  /* separator */
-		       ,
-		       fn, filename, se, sep, ln, sv.p - sv.bp, se, sep);
+		       "\33[%sm%c\33[0m", /* separator */
+		       fn, filename, se, sep);
+
+		if (bflag) {
+			printf("\33[%sm%td\33[0m" /* byte offset */
+			       "\33[%sm%c\33[0m", /* separator */
+			       ln, sv.p - sv.bp, se, sep);
+		} else {
+			size_t len;
+			struct u8view v;
+
+			if (!pos.p)
+				pos.p = (char8_t *)sv.bp;
+			len = (char8_t *)sv.p - pos.p;
+
+			while (u8gnext(&v, &pos.p, &len)) {
+				if (*v.p == '\n' || memeq(v.p, "\r\n", 2)) {
+					pos.col = 1;
+					pos.row++;
+				} else
+					pos.col++;
+			}
+
+			printf("\33[%sm%zu\33[0m" /* row */
+			       "\33[%sm%c\33[0m"  /* separator */
+			       "\33[%sm%zu\33[0m" /* column */
+			       "\33[%sm%c\33[0m"  /* separator */
+			       ,
+			       ln, pos.row, se, sep, ln, pos.col, se, sep);
+		}
 	}
 	if (rm) {
 		fwrite(sv.p, 1, rm->rm_so, stdout);
@@ -491,9 +531,38 @@ putm_nc(struct sv sv, regmatch_t *rm, const char *filename)
 {
 	(void)rm;
 
+	static struct {
+		const char8_t *p;
+		size_t col, row;
+	} pos = {
+		.col = 1,
+		.row = 1,
+	};
+
 	if (fflag || filecnt > 1) {
 		char sep = zflag ? '\0' : ':';
-		printf("%s%c%td%c", filename, sep, sv.p - sv.bp, sep);
+		printf("%s%c", filename, sep);
+
+		if (bflag)
+			printf("%td%c", sv.p - sv.bp, sep);
+		else {
+			size_t len;
+			struct u8view v;
+
+			if (!pos.p)
+				pos.p = (char8_t *)sv.bp;
+			len = (char8_t *)sv.p - pos.p;
+
+			while (u8gnext(&v, &pos.p, &len)) {
+				if (*v.p == '\n' || memeq(v.p, "\r\n", 2)) {
+					pos.col = 1;
+					pos.row++;
+				} else
+					pos.col++;
+			}
+
+			printf("%zu%c%zu%c", pos.row, sep, pos.col, sep);
+		}
 	}
 	fwrite(sv.p, 1, sv.len, stdout);
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))

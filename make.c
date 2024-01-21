@@ -17,8 +17,10 @@
 #include "cbs.h"
 #include "src/compat.h"
 
-#define CC           "cc"
-#define CFLAGS       "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe"
+#define CC "cc"
+#define CFLAGS \
+	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", \
+		"-Ivendor/librune/include"
 #define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
 #ifdef __APPLE__
 #	define CFLAGS_RELEASE "-O3"
@@ -88,7 +90,19 @@ main(int argc, char **argv)
 			cmdprc(c);
 		}
 	} else {
+		cmd_t c = {0};
 		struct strv sv = {0};
+
+		if (chdir("./vendor/librune/") == -1)
+			die("chdir: ./vendor/librune/");
+
+		cmdadd(&c, CC, "-lpthread", "-o", "make", "make.c");
+		cmdprc(c);
+		cmdadd(&c, "./make");
+		cmdprc(c);
+
+		if (chdir("../../") == -1)
+			die("chdir: ../../");
 
 		env_or_default(&sv, "CC", CC);
 		if (dflag)
@@ -114,7 +128,8 @@ main(int argc, char **argv)
 					cmdadd(&c, "-lpcre2-posix");
 				strvfree(&pc);
 			}
-			cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c");
+			cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c",
+			       "vendor/librune/librune.a");
 			cmdprc(c);
 		}
 

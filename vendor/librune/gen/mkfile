@@ -1,0 +1,37 @@
+#!/bin/sh
+
+set -e
+cd "${0%/*}/.."
+exec >Makefile
+
+cat <<make
+.POSIX:
+
+CC = cc
+CFLAGS = -Wall -Wextra -Wpedantic -g -ggdb3 -fanalyzer -Iinclude
+
+make
+
+printf 'objs = \\\n'
+find lib -name '*.c' | sort | sed '
+	s/c$/o/
+	s/.*/\t& \\/
+	$s/ \\$//
+'
+
+cat <<make
+
+all: \$(objs)
+
+make
+
+find lib -name '*.c' | sort | sed -E 's/(.*)c$/\1o: \1c/'
+
+cat <<make
+
+clean:
+	find lib -name '*.o' -delete
+
+ls:
+	@echo "alias ls='ls --color=auto -I \"*.o\" -I \"compile_commands.json\"'" >&2
+make

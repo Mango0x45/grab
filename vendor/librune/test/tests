@@ -1,0 +1,38 @@
+#!/bin/sh
+
+report()
+{
+	case $1 in
+	0) printf 'All tests passed\n'   >&2 ;;
+	1) printf '1 test failed\n'      >&2 ;;
+	*) printf '%d tests failed\n' $1 >&2
+	esac
+}
+
+readonly src=../data/GraphemeBreakTest.txt
+
+set -e
+cd "${0%/*}"
+find ../lib -name '*.c' -exec cc -I../include -o gbrk gbrk.c {} +
+trap 'rm -f gbrk' EXIT
+
+n=$(
+	./gbrk $src \
+	| diff -y --suppress-common-lines $src - \
+	| tee failures \
+	| wc -l
+)
+test $n -eq 0 && rm failures
+
+if test -t 2
+then
+	case $n in
+	0) printf '\033[0;32m' ;;
+	*) printf '\033[0;31m'
+	esac
+
+	report $n
+	printf '\033[0m' >&2
+else
+	report $n
+fi

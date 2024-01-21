@@ -1,0 +1,12 @@
+.cache/
+test/gbrk
+*.[ao]
+a.out
+compile_commands.json
+failures
+main
+make
+main.c
+Makefile
+NOTE-TO-SELF
+test.c
