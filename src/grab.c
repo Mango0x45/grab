@@ -58,13 +58,16 @@ struct sv {
 
 typedef unsigned char uchar;
 typedef void (*cmd_func)(struct sv, struct ops, size_t, const char *);
+typedef void (*put_func)(struct sv, regmatch_t *, const char *);
 
 static void cmdg(struct sv, struct ops, size_t, const char *);
 static void cmdx(struct sv, struct ops, size_t, const char *);
 static void cmdy(struct sv, struct ops, size_t, const char *);
 
-static void grab(struct ops, FILE *, const char *);
 static void putm(struct sv, regmatch_t *, const char *);
+static void putm_nc(struct sv, regmatch_t *, const char *);
+
+static void grab(struct ops, FILE *, const char *);
 static bool sgrvalid(const char *);
 static regex_t mkregex(char *, size_t);
 static struct ops comppat(char *);
@@ -78,12 +81,8 @@ static char *xstrchrnul(const char *, char);
 
 static int filecnt, rv;
 static bool cflag, nflag, sflag, Uflag, zflag;
-static bool fflag =
-#if GIT_GRAB
-	true;
-#else
-	false;
-#endif
+static bool fflag = GIT_GRAB;
+static put_func putf = putm;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -186,6 +185,8 @@ main(int argc, char **argv)
 	{
 		cflag = !streq(env_or_default("TERM", ""), "dumb");
 	}
+	if (!cflag)
+		putf = putm_nc;
 
 	ops = comppat(argv[0]);
 
@@ -314,7 +315,7 @@ cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 		return;
 
 	if (i + 1 == ops.len)
-		putm(sv, op.c == 'g' ? &rm : nullptr, filename);
+		putf(sv, op.c == 'g' ? &rm : nullptr, filename);
 	else
 		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1, filename);
 }
@@ -339,7 +340,7 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 			.len = rm.rm_eo - rm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putm(nsv, nullptr, filename);
+			putf(nsv, nullptr, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 
@@ -378,7 +379,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 				.len = rm.rm_so - prev.rm_eo,
 			};
 			if (i + 1 == ops.len)
-				putm(nsv, nullptr, filename);
+				putf(nsv, nullptr, filename);
 			else
 				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 		}
@@ -399,7 +400,7 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 			.len = rm.rm_eo - rm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putm(nsv, nullptr, filename);
+			putf(nsv, nullptr, filename);
 		else
 			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
 	}
@@ -467,23 +468,34 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 
 	if (fflag || filecnt > 1) {
 		char sep = zflag ? '\0' : ':';
-		if (cflag) {
-			printf("\33[%sm%s\33[0m"  /* filename */
-			       "\33[%sm%c\33[0m"  /* separator */
-			       "\33[%sm%td\33[0m" /* byte offset */
-			       "\33[%sm%c\33[0m"  /* separator */
-			       ,
-			       fn, filename, se, sep, ln, sv.p - sv.bp, se, sep);
-		} else
-			printf("%s%c", filename, sep);
+		printf("\33[%sm%s\33[0m"  /* filename */
+		       "\33[%sm%c\33[0m"  /* separator */
+		       "\33[%sm%td\33[0m" /* byte offset */
+		       "\33[%sm%c\33[0m"  /* separator */
+		       ,
+		       fn, filename, se, sep, ln, sv.p - sv.bp, se, sep);
 	}
-	if (cflag && rm) {
+	if (rm) {
 		fwrite(sv.p, 1, rm->rm_so, stdout);
 		printf("\33[%sm%.*s\33[0m", ma, (int)(rm->rm_eo - rm->rm_so),
 		       sv.p + rm->rm_so);
 		fwrite(sv.p + rm->rm_eo, 1, sv.len - rm->rm_eo, stdout);
 	} else
 		fwrite(sv.p, 1, sv.len, stdout);
+	if (!(sflag && sv.p[sv.len - 1] == '\n'))
+		putchar(zflag ? '\0' : '\n');
+}
+
+void
+putm_nc(struct sv sv, regmatch_t *rm, const char *filename)
+{
+	(void)rm;
+
+	if (fflag || filecnt > 1) {
+		char sep = zflag ? '\0' : ':';
+		printf("%s%c%td%c", filename, sep, sv.p - sv.bp, sep);
+	}
+	fwrite(sv.p, 1, sv.len, stdout);
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))
 		putchar(zflag ? '\0' : '\n');
 }
