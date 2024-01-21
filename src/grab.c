@@ -56,7 +56,7 @@ struct ops {
 };
 
 struct sv {
-	char *bp, *p;
+	char *p;
 	size_t len;
 };
 
@@ -87,6 +87,11 @@ static int filecnt, rv;
 static bool bflag, cflag, nflag, sflag, Uflag, zflag;
 static bool fflag = GIT_GRAB;
 static put_func putf;
+
+static struct {
+	const char *p, *bp;
+	size_t col, row;
+} pos;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -297,10 +302,11 @@ grab(struct ops ops, FILE *stream, const char *filename)
 		warn("fread: %s", filename);
 	else {
 		struct sv sv = {
-			.bp = chars.buf,
 			.p = chars.buf,
 			.len = chars.len,
 		};
+		pos.col = pos.row = 1;
+		pos.bp = pos.p = chars.buf;
 		op_table[(uchar)ops.buf[0].c](sv, ops, 0, filename);
 	}
 
@@ -342,7 +348,6 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
 			break;
 		nsv = (struct sv){
-			.bp = sv.bp,
 			.p = sv.p + rm.rm_so,
 			.len = rm.rm_eo - rm.rm_so,
 		};
@@ -381,7 +386,6 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 
 		if (prev.rm_so || prev.rm_eo || rm.rm_so) {
 			nsv = (struct sv){
-				.bp = sv.bp,
 				.p = sv.p + prev.rm_eo,
 				.len = rm.rm_so - prev.rm_eo,
 			};
@@ -402,7 +406,6 @@ cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
 
 	if (prev.rm_eo < rm.rm_eo) {
 		struct sv nsv = {
-			.bp = sv.bp,
 			.p = sv.p + rm.rm_so,
 			.len = rm.rm_eo - rm.rm_so,
 		};
@@ -417,13 +420,6 @@ void
 putm(struct sv sv, regmatch_t *rm, const char *filename)
 {
 	static const char *fn, *ln, *ma, *se;
-	static struct {
-		const char8_t *p;
-		size_t col, row;
-	} pos = {
-		.col = 1,
-		.row = 1,
-	};
 
 	if (cflag && !fn) {
 		char *optstr;
@@ -489,16 +485,12 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 		if (bflag) {
 			printf("\33[%sm%td\33[0m" /* byte offset */
 			       "\33[%sm%c\33[0m", /* separator */
-			       ln, sv.p - sv.bp, se, sep);
+			       ln, sv.p - pos.bp, se, sep);
 		} else {
-			size_t len;
 			struct u8view v;
+			size_t len = sv.p - pos.p;
 
-			if (!pos.p)
-				pos.p = (char8_t *)sv.bp;
-			len = (char8_t *)sv.p - pos.p;
-
-			while (u8gnext(&v, &pos.p, &len)) {
+			while (u8gnext(&v, (const char8_t **)&pos.p, &len)) {
 				if (islbrk(v)) {
 					pos.col = 1;
 					pos.row++;
@@ -529,29 +521,17 @@ putm_nc(struct sv sv, regmatch_t *rm, const char *filename)
 {
 	(void)rm;
 
-	static struct {
-		const char8_t *p;
-		size_t col, row;
-	} pos = {
-		.col = 1,
-		.row = 1,
-	};
-
 	if (fflag || filecnt > 1) {
 		char sep = zflag ? '\0' : ':';
 		printf("%s%c", filename, sep);
 
 		if (bflag)
-			printf("%td%c", sv.p - sv.bp, sep);
+			printf("%td%c", sv.p - pos.bp, sep);
 		else {
-			size_t len;
 			struct u8view v;
+			size_t len = sv.p - pos.p;
 
-			if (!pos.p)
-				pos.p = (char8_t *)sv.bp;
-			len = (char8_t *)sv.p - pos.p;
-
-			while (u8gnext(&v, &pos.p, &len)) {
+			while (u8gnext(&v, (const char8_t **)&pos.p, &len)) {
 				if (islbrk(v)) {
 					pos.col = 1;
 					pos.row++;
