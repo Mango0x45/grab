@@ -17,10 +17,8 @@
 #include "cbs.h"
 #include "src/compat.h"
 
-#define CC "cc"
-#define CFLAGS \
-	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", \
-		"-Ivendor/librune/include"
+#define CC           "cc"
+#define CFLAGS       "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe"
 #define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
 #ifdef __APPLE__
 #	define CFLAGS_RELEASE "-O3"
@@ -118,7 +116,7 @@ main(int argc, char **argv)
 #ifdef __GLIBC__
 			cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
 #endif
-			cmdadd(&c, buf);
+			cmdadd(&c, "-Ivendor/librune/include", buf);
 			if (!Pflag) {
 				struct strv pc = {0};
 				cmdadd(&c, "-DGRAB_DO_PCRE=1");

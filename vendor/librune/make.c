@@ -10,13 +10,11 @@
 
 #define CC "cc"
 #ifdef __APPLE__
-#	define CFLAGS \
-		"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", "-Iinclude", \
-			"-fPIC", "-O3"
+#	define CFLAGS "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", "-O3"
 #else
 #	define CFLAGS \
-		"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", "-Iinclude", \
-			"-fPIC", "-O3", "-march=native", "-mtune=native"
+		"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", "-O3", \
+			"-march=native", "-mtune=native"
 #endif
 
 #define cmdprc(c) \
@@ -85,8 +83,9 @@ work(void *p)
 	dst[strlen(dst) - 1] = 'o';
 
 	env_or_default(&sv, "CC", CC);
+	env_or_default(&sv, "CFLAGS", CFLAGS);
 	cmdaddv(&c, sv.buf, sv.len);
-	cmdadd(&c, CFLAGS, "-o", dst, "-c", src);
+	cmdadd(&c, "-Iinclude", "-fPIC", "-o", dst, "-c", src);
 	cmdprc(c);
 
 	free(dst);
