@@ -129,7 +129,7 @@ main(int argc, char **argv)
 	};
 
 #if GIT_GRAB
-	char *entry = NULL;
+	char *entry = nullptr;
 	size_t len;
 	ssize_t nr;
 	FILE *flist;
