@@ -1,4 +1,4 @@
-.Dd January 18 2024
+.Dd January 21 2024
 .Dt GRAB 1
 .Os
 .Sh NAME
@@ -7,7 +7,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl s | z
-.Op Fl cfnU
+.Op Fl bcfnU
 .Ar pattern
 .Op Ar
 .Nm
@@ -15,7 +15,7 @@
 .Pp
 .Nm "git grab"
 .Op Fl s | z
-.Op Fl cnU
+.Op Fl bcnU
 .Ar pattern
 .Op Ar glob ...
 .Nm "git grab"
@@ -79,6 +79,13 @@ options.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl b , Fl Fl byte\-offset
+Report the positions of pattern matches using the byte offset/position in
+the file instead of the line and column.
+.Pp
+This option is useful if your text editor
+.Pq such as Xr vim 1 or Xr emacs 1
+supports jumping directly to a given byte offset/position.
 .It Fl c , Fl Fl color
 Force colored output,
 even if the output device is not a TTY.
