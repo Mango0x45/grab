@@ -86,7 +86,7 @@ static char *xstrchrnul(const char *, char);
 static int filecnt, rv;
 static bool bflag, cflag, nflag, sflag, Uflag, zflag;
 static bool fflag = GIT_GRAB;
-static put_func putf = putm;
+static put_func putf;
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
@@ -193,9 +193,8 @@ main(int argc, char **argv)
 	{
 		cflag = !streq(env_or_default("TERM", ""), "dumb");
 	}
-	if (!cflag)
-		putf = putm_nc;
 
+	putf = cflag ? putm : putm_nc;
 	ops = comppat(argv[0]);
 
 #if GIT_GRAB
