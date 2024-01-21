@@ -315,12 +315,6 @@ the newline will
 be matched by
 .Ql [^a] .
 .Sh BUGS
-When writing pattern matches to the standard output,
-.Nm
-appends a newline to the end of the match.
-This often results in non-ideal output as matched patterns are often
-already suffixed by a newline.
-.Pp
 Input files must be encoded as UTF-8.
 No other encodings are supported unless they are UTF-8 compatible,
 such as ASCII.
