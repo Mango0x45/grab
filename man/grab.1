@@ -1,4 +1,4 @@
-.Dd January 21 2024
+.Dd January 22 2024
 .Dt GRAB 1
 .Os
 .Sh NAME
@@ -220,21 +220,21 @@ The keys are as follows:
 .Bl -tag -compact
 .It fn
 filenames prefixing any content line.
+.It hl
+text matched by an
+.Sq h
+or
+.Sq H
+command.
 .It ln
 line- and column-numbers,
 as well as byte offsets when reporting the location of a match.
-.It ma
-text matched by a
-.Sq g
-command if and only if the
-.Sq g
-command was the final command in the pattern.
 .It se
 separators inserted between filenames and content lines.
 .El
 .Pp
 The default value is
-.Sq fn=35,ln=32,ma=01;31,se=36
+.Sq fn=35,hl=01;31,ln=32,se=36
 .It Ev NO_COLOR
 Do not display any colored output when set to a non-empty string,
 even if the standard-output is a terminal.
