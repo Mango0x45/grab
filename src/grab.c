@@ -1,8 +1,11 @@
+#include <assert.h>
+
 #include <err.h>
 #include <getopt.h>
 #include <libgen.h>
 #include <limits.h>
 #include <locale.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +30,9 @@
 #include "compat.h"
 #include "da.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 #define die(...)  err(EXIT_FAILURE, __VA_ARGS__)
 #define diex(...) errx(EXIT_FAILURE, __VA_ARGS__)
 #define warn(...) \
@@ -45,6 +51,11 @@
 #define DEFCOL_MA "01;31"
 #define DEFCOL_SE "36"
 
+struct matches {
+	struct sv *buf;
+	size_t len, cap;
+};
+
 struct op {
 	char c;
 	regex_t pat;
@@ -61,15 +72,12 @@ struct sv {
 };
 
 typedef unsigned char uchar;
-typedef void (*cmd_func)(struct sv, struct ops, size_t, const char *);
-typedef void (*put_func)(struct sv, regmatch_t *, const char *);
+typedef void cmd_func(struct sv, struct matches *, struct ops, size_t,
+                      const char *);
+typedef void put_func(struct sv, struct matches *, const char *);
 
-static void cmdg(struct sv, struct ops, size_t, const char *);
-static void cmdx(struct sv, struct ops, size_t, const char *);
-static void cmdX(struct sv, struct ops, size_t, const char *);
-
-static void putm(struct sv, regmatch_t *, const char *);
-static void putm_nc(struct sv, regmatch_t *, const char *);
+static cmd_func cmdg, cmdh, cmdH, cmdx, cmdX;
+static put_func putm, putm_nc;
 
 #if GIT_GRAB
 static FILE *getfstream(int n, char *v[n]);
@@ -81,23 +89,22 @@ static bool islbrk(struct u8view);
 static bool sgrvalid(const char *);
 static bool xisspace(char);
 static char *xstrchrnul(const char *, char);
+static int svposcmp(const void *, const void *);
 static char *env_or_default(const char *, const char *);
 
 static int filecnt, rv;
 static bool bflag, cflag, nflag, sflag, Uflag, zflag;
 static bool fflag = GIT_GRAB;
-static put_func putf;
+static put_func *putf;
 
 static struct {
 	const char *p, *bp;
 	size_t col, row;
 } pos;
 
-static const cmd_func op_table[UCHAR_MAX] = {
-	['g'] = cmdg,
-	['G'] = cmdg,
-	['x'] = cmdx,
-	['X'] = cmdX,
+static cmd_func *op_table[UCHAR_MAX] = {
+	['g'] = cmdg, ['G'] = cmdg, ['h'] = cmdh,
+	['H'] = cmdH, ['x'] = cmdx, ['X'] = cmdX,
 };
 
 static void
@@ -305,16 +312,21 @@ grab(struct ops ops, FILE *stream, const char *filename)
 			.p = chars.buf,
 			.len = chars.len,
 		};
+		struct matches ms;
+
+		dainit(&ms, 4);
 		pos.col = pos.row = 1;
 		pos.bp = pos.p = chars.buf;
-		op_table[(uchar)ops.buf[0].c](sv, ops, 0, filename);
+		op_table[(uchar)ops.buf[0].c](sv, &ms, ops, 0, filename);
+		free(ms.buf);
 	}
 
 	free(chars.buf);
 }
 
 void
-cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
+cmdg(struct sv sv, struct matches *ms, struct ops ops, size_t i,
+     const char *filename)
 {
 	int r;
 	regmatch_t rm = {
@@ -328,13 +340,59 @@ cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 		return;
 
 	if (i + 1 == ops.len)
-		putf(sv, op.c == 'g' ? &rm : nullptr, filename);
+		putf(sv, ms, filename);
 	else
-		op_table[(uchar)ops.buf[i + 1].c](sv, ops, i + 1, filename);
+		op_table[(uchar)ops.buf[i + 1].c](sv, ms, ops, i + 1, filename);
 }
 
 void
-cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
+cmdh(struct sv sv, struct matches *ms, struct ops ops, size_t i,
+     const char *filename)
+{
+	regmatch_t rm = {
+		.rm_so = 0,
+		.rm_eo = sv.len,
+	};
+	struct op op = ops.buf[i];
+
+	do {
+		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
+			break;
+
+		dapush(ms, ((struct sv){sv.p + rm.rm_so, rm.rm_eo - rm.rm_so}));
+
+		if (rm.rm_so == rm.rm_eo)
+			rm.rm_eo++;
+		rm = (regmatch_t){
+			.rm_so = rm.rm_eo,
+			.rm_eo = sv.len,
+		};
+	} while (rm.rm_so < rm.rm_eo);
+
+	if (i + 1 == ops.len)
+		putf(sv, ms, filename);
+	else {
+		size_t save = ms->len;
+		op_table[(uchar)ops.buf[i + 1].c](sv, ms, ops, i + 1, filename);
+		ms->len = save;
+	}
+}
+
+void
+cmdH(struct sv sv, struct matches *ms, struct ops ops, size_t i,
+     const char *filename)
+{
+	(void)sv;
+	(void)ms;
+	(void)ops;
+	(void)i;
+	(void)filename;
+	assert(!"Not implemented");
+}
+
+void
+cmdx(struct sv sv, struct matches *ms, struct ops ops, size_t i,
+     const char *filename)
 {
 	regmatch_t rm = {
 		.rm_so = 0,
@@ -352,9 +410,12 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 			.len = rm.rm_eo - rm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putf(nsv, nullptr, filename);
-		else
-			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
+			putf(nsv, ms, filename);
+		else {
+			size_t save = ms->len;
+			op_table[(uchar)ops.buf[i + 1].c](nsv, ms, ops, i + 1, filename);
+			ms->len = save;
+		}
 
 		if (rm.rm_so == rm.rm_eo)
 			rm.rm_eo++;
@@ -366,7 +427,8 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 }
 
 void
-cmdX(struct sv sv, struct ops ops, size_t i, const char *filename)
+cmdX(struct sv sv, struct matches *ms, struct ops ops, size_t i,
+     const char *filename)
 {
 	regmatch_t rm = {
 		.rm_so = 0,
@@ -391,9 +453,9 @@ cmdX(struct sv sv, struct ops ops, size_t i, const char *filename)
 			};
 			if (nsv.len) {
 				if (i + 1 == ops.len)
-					putf(nsv, nullptr, filename);
+					putf(nsv, ms, filename);
 				else
-					op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1,
+					op_table[(uchar)ops.buf[i + 1].c](nsv, ms, ops, i + 1,
 					                                  filename);
 			}
 		}
@@ -413,15 +475,26 @@ cmdX(struct sv sv, struct ops ops, size_t i, const char *filename)
 			.len = rm.rm_eo - rm.rm_so,
 		};
 		if (i + 1 == ops.len)
-			putf(nsv, nullptr, filename);
+			putf(nsv, ms, filename);
 		else
-			op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
+			op_table[(uchar)ops.buf[i + 1].c](nsv, ms, ops, i + 1, filename);
 	}
 }
 
-void
-putm(struct sv sv, regmatch_t *rm, const char *filename)
+int
+svposcmp(const void *a, const void *b)
 {
+	struct sv *A, *B;
+	A = (struct sv *)a;
+	B = (struct sv *)b;
+	return A->p != B->p ? A->p - B->p : A->len < B->len ? -1 : A->len != B->len;
+}
+
+void
+putm(struct sv sv, struct matches *ms, const char *filename)
+{
+	const char *p;
+	struct matches valid;
 	static const char *fn, *ln, *ma, *se;
 
 	if (cflag && !fn) {
@@ -508,21 +581,70 @@ putm(struct sv sv, regmatch_t *rm, const char *filename)
 			       ln, pos.row, se, sep, ln, pos.col, se, sep);
 		}
 	}
-	if (rm) {
-		fwrite(sv.p, 1, rm->rm_so, stdout);
-		printf("\33[%sm%.*s\33[0m", ma, (int)(rm->rm_eo - rm->rm_so),
-		       sv.p + rm->rm_so);
-		fwrite(sv.p + rm->rm_eo, 1, sv.len - rm->rm_eo, stdout);
-	} else
-		fwrite(sv.p, 1, sv.len, stdout);
+
+	/* Here we need to take all the views of regions to highlight, and try
+	   to merge them into a simpler form.  This happens in two steps:
+
+	   1. Sort the views by their starting position in the matched text.
+	   2. Merge overlapping views.
+
+	   After this process we should have the most reduced possible set of
+	   views.  The next part is to actually print the highlighted regions
+	   possible which requires bounds-checking as highlighted regions may
+	   begin before or end after the matched text when using patterns such
+	   as ‘h/.+/ x/.$/’. */
+
+	dainit(&valid, ms->len);
+	qsort(ms->buf, ms->len, sizeof(*ms->buf), svposcmp);
+	memcpy(valid.buf, ms->buf, ms->len * sizeof(*ms->buf));
+	valid.len = ms->len;
+
+	for (size_t i = 0; i + 1 < valid.len;) {
+		ptrdiff_t d;
+		struct sv *a, *b;
+
+		a = valid.buf + i;
+		b = valid.buf + i + 1;
+		d = a->p + a->len - b->p;
+
+		if (d >= 0) {
+			a->len += MAX(b->len - d, 0);
+			daremove(&valid, i + 1);
+		} else
+			i++;
+	}
+
+	for (size_t i = 0; i < valid.len; i++) {
+		struct sv *m = valid.buf + i;
+		if (m->p + m->len < sv.p || m->p >= sv.p + sv.len) {
+			daremove(&valid, i);
+			i--;
+			continue;
+		}
+
+		if (m->p < sv.p) {
+			m->len -= sv.p - m->p;
+			m->p = sv.p;
+		}
+		m->len = MIN(m->len, (size_t)(sv.p + sv.len - m->p));
+	}
+
+	p = sv.p;
+	for (size_t i = 0; i < valid.len; i++) {
+		struct sv m = valid.buf[i];
+		printf("%.*s\33[%sm%.*s\33[0m", (int)(m.p - p), p, ma, (int)m.len, m.p);
+		p = m.p + m.len;
+	}
+	fwrite(p, 1, sv.p + sv.len - p, stdout);
+
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))
 		putchar(zflag ? '\0' : '\n');
 }
 
 void
-putm_nc(struct sv sv, regmatch_t *rm, const char *filename)
+putm_nc(struct sv sv, struct matches *ms, const char *filename)
 {
-	(void)rm;
+	(void)ms;
 
 	if (fflag || filecnt > 1) {
 		char sep = zflag ? '\0' : ':';
