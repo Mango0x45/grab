@@ -386,12 +386,47 @@ void
 cmdH(struct sv sv, struct matches *ms, struct ops ops, size_t i,
      const char *filename)
 {
-	(void)sv;
-	(void)ms;
-	(void)ops;
-	(void)i;
-	(void)filename;
-	assert(!"Not implemented");
+	regmatch_t rm = {
+		.rm_so = 0,
+		.rm_eo = sv.len,
+	};
+	regmatch_t prev = {
+		.rm_so = 0,
+		.rm_eo = 0,
+	};
+	struct op op = ops.buf[i];
+
+	do {
+		struct sv nsv;
+
+		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
+			break;
+
+		if (prev.rm_so || prev.rm_eo || rm.rm_so) {
+			nsv = (struct sv){
+				.p = sv.p + prev.rm_eo,
+				.len = rm.rm_so - prev.rm_eo,
+			};
+			if (nsv.len)
+				dapush(ms, nsv);
+		}
+
+		prev = rm;
+		if (rm.rm_so == rm.rm_eo)
+			rm.rm_eo++;
+		rm = (regmatch_t){
+			.rm_so = rm.rm_eo,
+			.rm_eo = sv.len,
+		};
+	} while (rm.rm_so < rm.rm_eo);
+
+	if (prev.rm_eo < rm.rm_eo)
+		dapush(ms, ((struct sv){sv.p + rm.rm_so, rm.rm_eo - rm.rm_so}));
+
+	if (i + 1 == ops.len)
+		putf(sv, ms, filename);
+	else
+		op_table[(uchar)ops.buf[i + 1].c](sv, ms, ops, i + 1, filename);
 }
 
 void
