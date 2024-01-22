@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #include <err.h>
 #include <getopt.h>
 #include <libgen.h>
