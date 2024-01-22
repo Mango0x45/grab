@@ -224,6 +224,7 @@ main(int argc, char **argv)
 	}
 	if (ferror(flist))
 		warn("getdelim");
+	fclose(flist);
 #else
 	if (argc == 1)
 		grab(ops, stdin, "-");
@@ -244,6 +245,9 @@ main(int argc, char **argv)
 #endif
 
 #ifdef GRAB_DEBUG
+#	if GIT_GRAB
+	free(entry);
+#	endif
 	for (size_t i = 0; i < ops.len; i++)
 		regfree(&ops.buf[i].pat);
 	free(ops.buf);
@@ -639,6 +643,7 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 
 	if (!(sflag && sv.p[sv.len - 1] == '\n'))
 		putchar(zflag ? '\0' : '\n');
+	free(valid.buf);
 }
 
 void
