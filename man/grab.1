@@ -181,29 +181,29 @@ The supported operators are as follows:
 .Bl -tag -compact
 .It g
 Keep selections that match the given regex.
-.It v
+.It G
 Discard selections that match the given regex.
 .It x
 Select everything that matches the given regex.
-.It y
+.It X
 Select everything that doesn’t match the given regex.
 .El
 .Pp
 An example pattern to match all numbers that contain a ‘3’ but aren’t
 ‘1337’ could be
-.Sq x/[0\-9]+/ g/3/ v/^1337$/ .
+.Sq x/[0\-9]+/ g/3/ G/^1337$/ .
 In that pattern,
 .Sq x/[0\-9]+/
 selects all numbers in the input,
 .Sq g/3/
 keeps only those matches that contain the number 3,
 and
-.Sq v/^1337$/
+.Sq G/^1337$/
 filters out the specific number 1337.
 .Pp
 As you may use whichever delimiter you like, the following is also valid:
 .Pp
-.Dl x|[0\-9]+| g.3. v#^1337#
+.Dl x|[0\-9]+| g.3. G#^1337#
 .Sh ENVIRONMENT
 .Bl -tag -width GRAB_COLORS
 .It Ev GRAB_COLORS
@@ -251,7 +251,7 @@ option is provided.
 .Sh EXAMPLES
 List all your systems CPU flags, sorted and without duplicates:
 .Pp
-.Dl $ grab 'x/^flags.*/ x/\ew+/ v/flags/' | sort | uniq
+.Dl $ grab 'x/^flags.*/ x/\ew+/ G/flags/' | sort | uniq
 .Pp
 Search for a pattern in multiple files without printing filenames:
 .Pp

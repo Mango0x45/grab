@@ -66,7 +66,7 @@ typedef void (*put_func)(struct sv, regmatch_t *, const char *);
 
 static void cmdg(struct sv, struct ops, size_t, const char *);
 static void cmdx(struct sv, struct ops, size_t, const char *);
-static void cmdy(struct sv, struct ops, size_t, const char *);
+static void cmdX(struct sv, struct ops, size_t, const char *);
 
 static void putm(struct sv, regmatch_t *, const char *);
 static void putm_nc(struct sv, regmatch_t *, const char *);
@@ -95,9 +95,9 @@ static struct {
 
 static const cmd_func op_table[UCHAR_MAX] = {
 	['g'] = cmdg,
-	['v'] = cmdg,
+	['G'] = cmdg,
 	['x'] = cmdx,
-	['y'] = cmdy,
+	['X'] = cmdX,
 };
 
 static void
@@ -324,7 +324,7 @@ cmdg(struct sv sv, struct ops ops, size_t i, const char *filename)
 	struct op op = ops.buf[i];
 
 	r = regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND);
-	if ((r == REG_NOMATCH && op.c == 'g') || (r != REG_NOMATCH && op.c == 'v'))
+	if ((r == REG_NOMATCH && op.c == 'g') || (r != REG_NOMATCH && op.c == 'G'))
 		return;
 
 	if (i + 1 == ops.len)
@@ -366,7 +366,7 @@ cmdx(struct sv sv, struct ops ops, size_t i, const char *filename)
 }
 
 void
-cmdy(struct sv sv, struct ops ops, size_t i, const char *filename)
+cmdX(struct sv sv, struct ops ops, size_t i, const char *filename)
 {
 	regmatch_t rm = {
 		.rm_so = 0,

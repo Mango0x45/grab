@@ -36,8 +36,8 @@ command is optional.
 
 For example, a pattern string may look like ‘`x/[a-z]+/ g.foo. v/bar/`’.
 
-The available operators are ‘g’, ‘v’, ‘x’, and ‘y’.  The ‘g’ and ‘v’
-operators are filter operators, while ‘x’ and ‘y’ are selection
+The available operators are ‘g’, ‘G’, ‘x’, and ‘X’.  The ‘g’ and ‘G’
+operators are filter operators, while ‘x’ and ‘X’ are selection
 operators.
 
 You probably want to begin your pattern with a selection operator.  By
@@ -52,11 +52,11 @@ echo 'foo12bar34baz' | grab 'x/[0-9]+/'
 # ⇒ 34
 ```
 
-The ‘y’ operator works in reverse, selecting everything that _doesn’t_
+The ‘X’ operator works in reverse, selecting everything that _doesn’t_
 match the given regex:
 
 ```sh
-echo 'foo12bar34baz' | grab 'y/[0-9]+/'
+echo 'foo12bar34baz' | grab 'X/[0-9]+/'
 # ⇒ foo
 # ⇒ bar
 # ⇒ baz
@@ -64,7 +64,7 @@ echo 'foo12bar34baz' | grab 'y/[0-9]+/'
 
 You can additionally use filter operators to keep or discard certain
 results.  The ‘g’ operator will filter out any results that don’t match
-the given regex, while the ‘v’ operator will do the opposite.  To select
+the given regex, while the ‘G’ operator will do the opposite.  To select
 all numbers that contain a ‘3’ we can thus do:
 
 ``` sh
@@ -78,7 +78,7 @@ echo 'foo12bar34baz' | grab 'x/[0-9]+/ g/3/'
 Likewise to select all numbers that don’t contain a ‘3’:
 
 ```sh
-echo 'foo12bar34baz' | grab 'x/[0-9]+/ v/3/'
+echo 'foo12bar34baz' | grab 'x/[0-9]+/ G/3/'
 # ⇒ 12
 ```
 
@@ -87,7 +87,7 @@ contain a ‘3’ but aren’t the specific number ‘1337’, we could do the
 following:
 
 ```sh
-grab 'x/[0-9]+/ g/3/ v/^1337$/' /foo/bar
+grab 'x/[0-9]+/ g/3/ G/^1337$/' /foo/bar
 ```
 
 
@@ -103,7 +103,7 @@ grep '^flags' /proc/cpuinfo \
 | uniq
 
 # With Grab
-grab 'x/^flags.*/ x/\w+/ v/flags/' /proc/cpuinfo \
+grab 'x/^flags.*/ x/\w+/ G/flags/' /proc/cpuinfo \
 | sort \
 | uniq
 ```
