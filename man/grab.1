@@ -209,6 +209,23 @@ filters out the specific number 1337.
 As you may use whichever delimiter you like, the following is also valid:
 .Pp
 .Dl x|[0\-9]+| g.3. G#^1337#
+.Pp
+Operators are not allowed to take empty regular expression arguments with
+one exception:
+.Sq h .
+When given an empty regular expression argument,
+the
+.Sq h
+operator assumes the same regular expression as the previous operator.
+This allows you to avoid duplication in the common case where a user
+wishes to highlight text matched by a
+.Sq g
+operator.
+The following example pattern selects all words that have a capital
+letter,
+and highlights the capital letter(s):
+.Pp
+.Dl x/\ew+/ g/[A\-Z]/ h//
 .Sh ENVIRONMENT
 .Bl -tag -width GRAB_COLORS
 .It Ev GRAB_COLORS
