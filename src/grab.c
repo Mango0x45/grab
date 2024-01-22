@@ -57,6 +57,9 @@ struct matches {
 struct op {
 	char c;
 	regex_t pat;
+#ifdef GRAB_DEBUG
+	bool alloced;
+#endif
 };
 
 struct ops {
@@ -246,8 +249,10 @@ main(int argc, char **argv)
 #	if GIT_GRAB
 	free(entry);
 #	endif
-	for (size_t i = 0; i < ops.len; i++)
-		regfree(&ops.buf[i].pat);
+	for (size_t i = 0; i < ops.len; i++) {
+		if (ops.buf[i].alloced)
+			regfree(&ops.buf[i].pat);
+	}
 	free(ops.buf);
 #endif
 
@@ -278,7 +283,19 @@ comppat(char *s)
 
 		p = ++s;
 		s = xstrchrnul(s, delim);
-		op.pat = mkregex(p, s - p);
+		if (s - p == 0) {
+			if (op.c != 'h')
+				diex("Empty regex given to ‘%c’", op.c);
+			op.pat = ops.buf[ops.len - 1].pat;
+#ifdef GRAB_DEBUG
+			op.alloced = false;
+#endif
+		} else {
+			op.pat = mkregex(p, s - p);
+#ifdef GRAB_DEBUG
+			op.alloced = true;
+#endif
+		}
 		dapush(&ops, op);
 
 		if (*s)
