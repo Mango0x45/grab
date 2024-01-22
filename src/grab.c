@@ -47,8 +47,8 @@
 #define EEARLY "Input string terminated prematurely"
 
 #define DEFCOL_FN "35"
+#define DEFCOL_HL "01;31"
 #define DEFCOL_LN "32"
-#define DEFCOL_MA "01;31"
 #define DEFCOL_SE "36"
 
 struct matches {
@@ -495,22 +495,22 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 {
 	const char *p;
 	struct matches valid;
-	static const char *fn, *ln, *ma, *se;
+	static const char *fn, *hl, *ln, *se;
 
 	if (cflag && !fn) {
 		char *optstr;
 		if ((optstr = env_or_default("GRAB_COLORS", nullptr))) {
 			enum {
 				OPT_FN,
+				OPT_HL,
 				OPT_LN,
-				OPT_MA,
 				OPT_SE,
 			};
 			/* clang-format off */
 			static char *const tokens[] = {
 				[OPT_FN] = "fn",
+				[OPT_HL] = "hl",
 				[OPT_LN] = "ln",
-				[OPT_MA] = "ma",
 				[OPT_SE] = "se",
 				nullptr
 			};
@@ -523,13 +523,13 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 					if (sgrvalid(val))
 						fn = val;
 					break;
+				case OPT_HL:
+					if (sgrvalid(val))
+						hl = val;
+					break;
 				case OPT_LN:
 					if (sgrvalid(val))
 						fn = val;
-					break;
-				case OPT_MA:
-					if (sgrvalid(val))
-						ma = val;
 					break;
 				case OPT_SE:
 					if (sgrvalid(val))
@@ -544,10 +544,10 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 
 		if (!fn)
 			fn = DEFCOL_FN;
+		if (!hl)
+			hl = DEFCOL_HL;
 		if (!ln)
 			ln = DEFCOL_LN;
-		if (!ma)
-			ma = DEFCOL_MA;
 		if (!se)
 			se = DEFCOL_SE;
 	}
@@ -632,7 +632,7 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 	p = sv.p;
 	for (size_t i = 0; i < valid.len; i++) {
 		struct sv m = valid.buf[i];
-		printf("%.*s\33[%sm%.*s\33[0m", (int)(m.p - p), p, ma, (int)m.len, m.p);
+		printf("%.*s\33[%sm%.*s\33[0m", (int)(m.p - p), p, hl, (int)m.len, m.p);
 		p = m.p + m.len;
 	}
 	fwrite(p, 1, sv.p + sv.len - p, stdout);
