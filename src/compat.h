@@ -20,6 +20,9 @@
 #endif
 
 #if !LIBCOMPAT_IS_23
+#	ifdef static_assert
+#		undef static_assert
+#	endif
 #	define static_assert(e, ...) _Static_assert(e, ""__VA_ARGS__)
 #endif
 
