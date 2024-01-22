@@ -36,9 +36,9 @@ command is optional.
 
 For example, a pattern string may look like ‘`x/[a-z]+/ g.foo. v/bar/`’.
 
-The available operators are ‘g’, ‘G’, ‘x’, and ‘X’.  The ‘g’ and ‘G’
-operators are filter operators, while ‘x’ and ‘X’ are selection
-operators.
+The available operators are ‘g’, ‘G’, ‘h’, ‘H’, ‘x’, and ‘X’.  The ‘g’
+and ‘G’ operators are filter operators, the ‘h’ and ‘H’ operators are
+highlighting operators, and ‘x’ and ‘X’ are selection operators.
 
 You probably want to begin your pattern with a selection operator.  By
 default the entire contents of the file you’re searching through will be
@@ -88,6 +88,21 @@ following:
 
 ```sh
 grab 'x/[0-9]+/ g/3/ G/^1337$/' /foo/bar
+```
+
+The final set of operators are highlighting operators.  They don’t change
+the text that is ultimately matched in any manner, but instead highlight
+the matched text in the output.  If given the empty regular expression
+the ‘h’ operator will highlight according to the same regular expression
+as the previous operator.
+
+The following examples select words with a capital letter, and highlights
+all the capital letters:
+
+```sh
+# These are both the same
+grab 'x/\w+/ g/[A-Z]/ h/[A-Z]/' /foo/bar
+grab 'x/\w+/ g/[A-Z]/ h//'      /foo/bar
 ```
 
 
