@@ -389,10 +389,13 @@ cmdX(struct sv sv, struct ops ops, size_t i, const char *filename)
 				.p = sv.p + prev.rm_eo,
 				.len = rm.rm_so - prev.rm_eo,
 			};
-			if (i + 1 == ops.len)
-				putf(nsv, nullptr, filename);
-			else
-				op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1, filename);
+			if (nsv.len) {
+				if (i + 1 == ops.len)
+					putf(nsv, nullptr, filename);
+				else
+					op_table[(uchar)ops.buf[i + 1].c](nsv, ops, i + 1,
+					                                  filename);
+			}
 		}
 
 		prev = rm;
