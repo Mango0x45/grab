@@ -44,8 +44,6 @@
 #define streq(a, b)    (!strcmp(a, b))
 #define memeq(a, b, n) (!memcmp(a, b, n))
 
-#define EEARLY "Input string terminated prematurely"
-
 #define DEFCOL_FN "35"
 #define DEFCOL_HL "01;31"
 #define DEFCOL_LN "32"
@@ -269,7 +267,7 @@ comppat(char8_t *s)
 	while (*s && xisspace(*s))
 		s++;
 	if (!*s)
-		diex(EEARLY);
+		diex("Input string terminated prematurely");
 
 	do {
 		int w;
@@ -292,7 +290,7 @@ comppat(char8_t *s)
 		if (ch == RUNE_ERROR)
 			diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
 		if (ch == '\0')
-			diex(EEARLY);
+			diex("Input string terminated prematurely");
 
 		/* Find the closing delimiter.  The user is allowed to omit the closing
 		   delimiter if this is the last operation in the query pattern. */
@@ -305,15 +303,13 @@ comppat(char8_t *s)
 			if (op.c != 'h')
 				diex("Empty regex given to ‘%c’", op.c);
 			op.pat = ops.buf[ops.len - 1].pat;
-#ifdef GRAB_DEBUG
-			op.alloced = false;
-#endif
-		} else {
+		} else
 			op.pat = mkregex(p, s - p);
-#ifdef GRAB_DEBUG
-			op.alloced = true;
+
+#if GRAB_DEBUG
+		op.alloced = s - p == 0;
 #endif
-		}
+
 		dapush(&ops, op);
 
 		if (*s) {
