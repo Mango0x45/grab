@@ -163,7 +163,7 @@ supports Perl-compatible regular expressions
 however it is possible to build and install
 .Nm
 without support for PCREs.
-When build without PCRE support,
+When built without PCRE support,
 POSIX extended-regular-expressions are used instead.
 .Pp
 You should always assume that PCRE support is available,
@@ -172,7 +172,7 @@ terminates unsuccessfully when using the
 .Fl U
 option.
 .Ss Pattern Syntax
-A pattern is a sequences of commands optionally separated by whitespace.
+A pattern is a sequence of commands optionally separated by whitespace.
 A command is an operator followed by a delimiter, a regular expression,
 and then terminated by the same delimiter.  The last command of a pattern
 need not have a terminating delimiter.
@@ -340,7 +340,7 @@ When PCRE support is available and the
 option is provided,
 the regular expression
 .Ql [^a]
-will nontheless match the newline character.
+will nonetheless match the newline character.
 When PCRE support is not available and the
 .Fl n
 option is provided,

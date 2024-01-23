@@ -28,7 +28,7 @@ $ ./make --no-pcre
 
 ## Description
 
-Grab invokations must include a pattern string which specifies which text
+Grab invocations must include a pattern string which specifies which text
 to match.  A pattern string consists of one or more commands.  A command
 is an operator followed by a delimiter, a regular expression (regex), and
 then terminated by the same delimiter.  The last delimiter of the last
