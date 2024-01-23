@@ -17,8 +17,9 @@
 #include "cbs.h"
 #include "src/compat.h"
 
-#define CC           "cc"
-#define CFLAGS       "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe"
+#define CC "cc"
+#define CFLAGS \
+	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-Wno-pointer-sign", "-pipe"
 #define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
 #ifdef __APPLE__
 #	define CFLAGS_RELEASE "-O3"

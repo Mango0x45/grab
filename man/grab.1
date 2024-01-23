@@ -1,4 +1,4 @@
-.Dd 22 January, 2024
+.Dd 23 January, 2024
 .Dt GRAB 1
 .Os Grab 2.0.1
 .Sh NAME
@@ -206,9 +206,17 @@ and
 .Sq G/^1337$/
 filters out the specific number 1337.
 .Pp
-As you may use whichever delimiter you like, the following is also valid:
+The delimiter used for each given operator can be any valid UTF-8
+codepoint.
+As a result,
+the following pattern using the delimiters
+.Sq | ,
+.Sq \&. ,
+and
+.Sq ä
+is well-formed:
 .Pp
-.Dl x|[0\-9]+| g.3. G#^1337#
+.Dl x|[0\-9]+| g.3. Gä^1337ä
 .Pp
 Operators are not allowed to take empty regular expression arguments with
 one exception:
@@ -337,6 +345,7 @@ the newline will
 be matched by
 .Ql [^a] .
 .Sh BUGS
-Input files must be encoded as UTF-8.
+The pattern string provided as a command-line argument as well as the
+provided input files must be encoded as UTF-8.
 No other encodings are supported unless they are UTF-8 compatible,
 such as ASCII.

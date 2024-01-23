@@ -24,6 +24,8 @@
 #endif
 
 #include <gbrk.h>
+#include <rune.h>
+#include <utf8.h>
 
 #include "compat.h"
 #include "da.h"
@@ -84,12 +86,11 @@ static put_func putm, putm_nc;
 static FILE *getfstream(int n, char *v[n]);
 #endif
 static void grab(struct ops, FILE *, const char *);
-static struct ops comppat(char *);
-static regex_t mkregex(char *, size_t);
+static struct ops comppat(char8_t *);
+static regex_t mkregex(char8_t *, size_t);
 static bool islbrk(struct u8view);
 static bool sgrvalid(const char *);
 static bool xisspace(char);
-static char *xstrchrnul(const char *, char);
 static int svposcmp(const void *, const void *);
 static char *env_or_default(const char *, const char *);
 
@@ -260,7 +261,7 @@ main(int argc, char **argv)
 }
 
 struct ops
-comppat(char *s)
+comppat(char8_t *s)
 {
 	struct ops ops;
 
@@ -271,18 +272,35 @@ comppat(char *s)
 		diex(EEARLY);
 
 	do {
-		char delim;
-		char *p;
+		int w;
+		rune ch;
+		size_t len;
+		char8_t *p;
 		struct op op;
 
-		op.c = *s;
-		if (!op_table[(uchar)op.c])
-			diex("Invalid operator ‘%c’", *s);
-		if (!(delim = *++s))
+		/* Grab the operator and delimiter.  All operators are ASCII, but
+		   u8tor() is used to parse it so that we get properly formed error
+		   messages when someone uses a non-ASCII operator. */
+		w = u8tor(&ch, s);
+		if (ch == RUNE_ERROR)
+			diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
+		if (w > 1 || !op_table[ch])
+			diex("Invalid operator ‘%.*s’", w, s);
+		op.c = *s++;
+
+		s += u8tor(&ch, s);
+		if (ch == RUNE_ERROR)
+			diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
+		if (ch == '\0')
 			diex(EEARLY);
 
-		p = ++s;
-		s = xstrchrnul(s, delim);
+		/* Find the closing delimiter.  The user is allowed to omit the closing
+		   delimiter if this is the last operation in the query pattern. */
+		p = s;
+		len = strlen(s);
+		if (!(s = (char8_t *)u8chr(s, ch, len)))
+			s = p + len;
+
 		if (s - p == 0) {
 			if (op.c != 'h')
 				diex("Empty regex given to ‘%c’", op.c);
@@ -298,11 +316,13 @@ comppat(char *s)
 		}
 		dapush(&ops, op);
 
-		if (*s)
-			s++;
+		if (*s) {
+			if (s += u8tor(&ch, s), ch == RUNE_ERROR)
+				diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
+		}
 		while (*s && xisspace(*s))
 			s++;
-	} while (*s && *(s + 1));
+	} while (*s);
 
 	return ops;
 }
@@ -747,11 +767,11 @@ sgrvalid(const char *s)
 }
 
 regex_t
-mkregex(char *s, size_t n)
+mkregex(char8_t *s, size_t n)
 {
-	char c = s[n];
 	int ret, cflags;
 	regex_t r;
+	char8_t c = s[n];
 
 	s[n] = 0;
 	cflags = REG_EXTENDED | REG_UTF | (nflag ? REG_NEWLINE : REG_DOTALL);
@@ -822,16 +842,4 @@ bool
 xisspace(char c)
 {
 	return c == ' ' || c == '\t' || c == '\n';
-}
-
-char *
-xstrchrnul(const char *s, char c)
-{
-	for (; *s; s++) {
-		if (*s == '\\')
-			s++;
-		else if (*s == c)
-			break;
-	}
-	return (char *)s;
 }
