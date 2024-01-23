@@ -302,6 +302,8 @@ comppat(char8_t *s)
 		if (s - p == 0) {
 			if (op.c != 'h')
 				diex("Empty regex given to ‘%c’", op.c);
+			if (ops.len == 0)
+				diex("Empty ‘h’ is not allowed as the first operator");
 			op.pat = ops.buf[ops.len - 1].pat;
 		} else
 			op.pat = mkregex(p, s - p);
