@@ -29,7 +29,7 @@
 #define PREFIX "/usr/local"
 
 #define streq(a, b) (!strcmp(a, b))
-#define cmdprc(c) \
+#define CMDPRC(c) \
 	do { \
 		int ec; \
 		cmdput(c); \
@@ -75,64 +75,69 @@ main(int argc, char **argv)
 
 	if (argc > 0) {
 		if (streq(*argv, "clean")) {
-			cmdadd(&c, "rm", "-f", "grab", "git-grab");
-			cmdprc(c);
+			cmdadd(&c, "find", ".", "-name", "grab", "-or", "-name", "git-grab",
+			       "-or", "-name", "*.[ao]", "-delete");
+			CMDPRC(c);
 		} else if (streq(*argv, "install")) {
 			char *bin, *man;
 			bin = mkoutpath("/bin");
 			man = mkoutpath("/share/man/man1");
 			cmdadd(&c, "mkdir", "-p", bin, man);
-			cmdprc(c);
+			CMDPRC(c);
 			cmdadd(&c, "cp", "grab", "git-grab", bin);
-			cmdprc(c);
+			CMDPRC(c);
 			cmdadd(&c, "cp", "man/grab.1", "man/git-grab.1", man);
-			cmdprc(c);
+			CMDPRC(c);
 		}
 	} else {
 		cmd_t c = {0};
 		struct strv sv = {0};
 
-		if (chdir("./vendor/librune/") == -1)
-			die("chdir: ./vendor/librune/");
-
-		cmdadd(&c, CC, "-lpthread", "-o", "make", "make.c");
-		cmdprc(c);
-		cmdadd(&c, "./make");
-		cmdprc(c);
-
-		if (chdir("../../") == -1)
-			die("chdir: ../../");
-
-		env_or_default(&sv, "CC", CC);
-		if (dflag)
-			env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
-		else
-			env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
-
-		for (int i = 0; i < 2; i++) {
-			char buf[] = "-DGIT_GRAB=X";
-			buf[sizeof(buf) - 2] = i + '0';
-
-			cmdaddv(&c, sv.buf, sv.len);
-#ifdef __GLIBC__
-			cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
-#endif
-			cmdadd(&c, "-Ivendor/librune/include", buf);
-			if (!Pflag) {
-				struct strv pc = {0};
-				cmdadd(&c, "-DGRAB_DO_PCRE=1");
-				if (pcquery(&pc, "libpcre2-posix", PKGC_CFLAGS | PKGC_LIBS))
-					cmdaddv(&c, pc.buf, pc.len);
-				else
-					cmdadd(&c, "-lpcre2-posix");
-				strvfree(&pc);
-			}
-			cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c",
-			       "vendor/librune/librune.a");
-			cmdprc(c);
+		if (foutdated("vendor/librune/make", "vendor/librune/make.c")) {
+			cmdadd(&c, CC, "-lpthread", "-o", "vendor/librune/make",
+			       "vendor/librune/make.c");
+			CMDPRC(c);
 		}
 
-		strvfree(&sv);
+		if (!fexists("vendor/librune/librune.a")) {
+			cmdadd(&c, "vendor/librune/make");
+			CMDPRC(c);
+		}
+
+		if (foutdated("./grab", "src/grab.c", "src/compat.h", "src/da.h",
+		              "vendor/librune/librune.a"))
+		{
+			env_or_default(&sv, "CC", CC);
+			if (dflag)
+				env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
+			else
+				env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
+
+			for (int i = 0; i < 2; i++) {
+				char buf[] = "-DGIT_GRAB=X";
+				buf[sizeof(buf) - 2] = i + '0';
+
+				cmdaddv(&c, sv.buf, sv.len);
+#ifdef __GLIBC__
+				cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
+#endif
+				cmdadd(&c, "-Ivendor/librune/include", buf);
+				if (!Pflag) {
+					struct strv pc = {0};
+					cmdadd(&c, "-DGRAB_DO_PCRE=1");
+					if (pcquery(&pc, "libpcre2-posix", PKGC_CFLAGS | PKGC_LIBS))
+						cmdaddv(&c, pc.buf, pc.len);
+					else
+						cmdadd(&c, "-lpcre2-posix");
+					strvfree(&pc);
+				}
+				cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c",
+				       "vendor/librune/librune.a");
+				CMDPRC(c);
+			}
+
+			strvfree(&sv);
+		}
 	}
 
 	return EXIT_SUCCESS;
