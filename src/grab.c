@@ -70,7 +70,7 @@ struct ops {
 };
 
 struct sv {
-	char *p;
+	char8_t *p;
 	size_t len;
 };
 
@@ -100,7 +100,7 @@ static bool fflag = GIT_GRAB;
 static put_func *putf;
 
 static struct {
-	const char *p, *bp;
+	const char8_t *p, *bp;
 	size_t col, row;
 } pos;
 
@@ -567,7 +567,7 @@ svposcmp(const void *a, const void *b)
 void
 putm(struct sv sv, struct matches *ms, const char *filename)
 {
-	const char *p;
+	const char8_t *p;
 	struct matches valid;
 	static const char *fn, *hl, *ln, *se;
 
@@ -640,7 +640,7 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 			struct u8view v;
 			size_t len = sv.p - pos.p;
 
-			while (u8gnext(&v, (const char8_t **)&pos.p, &len)) {
+			while (u8gnext(&v, &pos.p, &len)) {
 				if (islbrk(v)) {
 					pos.col = 1;
 					pos.row++;
@@ -731,7 +731,7 @@ putm_nc(struct sv sv, struct matches *ms, const char *filename)
 			struct u8view v;
 			size_t len = sv.p - pos.p;
 
-			while (u8gnext(&v, (const char8_t **)&pos.p, &len)) {
+			while (u8gnext(&v, &pos.p, &len)) {
 				if (islbrk(v)) {
 					pos.col = 1;
 					pos.row++;
