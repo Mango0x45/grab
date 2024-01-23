@@ -1,6 +1,8 @@
 #ifndef RUNE_INTERNAL_COMMON_H
 #define RUNE_INTERNAL_COMMON_H
 
+/* IWYU pragma: private */
+
 #if __STDC_VERSION__ >= 202311L
 #	define RUNE_IS_23 1
 #endif

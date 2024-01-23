@@ -22,6 +22,7 @@ This library contains the following headers:
 1. `gbrk.h` — grapheme-iteration functions
 2. `rune.h` — rune-constants, -macros, and -functions
 3. `utf8.h` — UTF-8 encoding, decoding, iteration, etc.
+4. `builder.h` — string building functions
 
 
 ## Installation

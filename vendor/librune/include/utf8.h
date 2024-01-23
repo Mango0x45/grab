@@ -18,7 +18,7 @@ int u8tor(rune *, const char8_t *);
 int u8tor_uc(rune *, const char8_t *);
 
 const char8_t *u8chk(const char8_t *, size_t);
-bool u8chkr(rune);
+_RUNE_UNSEQUENCED bool u8chkr(rune);
 
 _RUNE_UNSEQUENCED int u8wdth(rune);
 

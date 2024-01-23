@@ -5,6 +5,7 @@
 #ifndef RUNE_INTERNAL_GBRK_LOOKUP_H
 #define RUNE_INTERNAL_GBRK_LOOKUP_H
 
+/* IWYU pragma: private */
 /* clang-format off */
 
 #include "types.h"

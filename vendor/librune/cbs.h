@@ -30,6 +30,9 @@
    the program on error.  If this is undesired behavior, feel free to edit the
    functions to return errors.
 
+   IMPORTANT NOTE: This library is built with the assumption that the source
+   file for your build script and your build script are in the SAME DIRECTORY.
+
    There are a few exceptions to the above rule, and they are documented.
 
    This library does not aim to ever support Windows */
@@ -40,6 +43,7 @@
 #ifdef __GNUC__
 #	pragma GCC diagnostic push
 #	pragma GCC diagnostic ignored "-Wunused-function"
+#	pragma GCC diagnostic ignored "-Wparentheses"
 #endif
 
 /* Assert that the user is building for a supported platform.  The only portable
@@ -87,7 +91,9 @@
 #	define noreturn [[noreturn]]
 #else
 #	include <stdbool.h>
+#	include <stddef.h>
 #	include <stdnoreturn.h>
+#	define nullptr NULL
 #endif
 
 /* Give helpful diagnostics when people use die() incorrectly on GCC.  C23
@@ -147,7 +153,8 @@ ATTR_FMT noreturn static void die(const char *_Nullable, ...);
 ATTR_FMT noreturn static void diex(const char *, ...);
 
 /* Initializes some data required for this header to work properly.  This should
-   be the first thing called in main() with argc and argv passed. */
+   be the first thing called in main() with argc and argv passed.  It also
+   chdir()s into the directory where the build script is located. */
 static void cbsinit(int, char **);
 
 /* Get the number of items in the array a */
@@ -253,7 +260,10 @@ static bool foutdatedv(const char *base, const char **p, size_t n);
 /* Rebuild the build script if it has been modified, and execute the newly built
    script.  You should call the rebuild() macro at the very beginning of main(),
    but right after cbsinit().  You probably don’t want to call _rebuild()
-   directly. */
+   directly.
+
+   NOTE: This function/macro REQUIRES that the source for the build script and
+   the compiled build script are in the SAME DIRECTORY. */
 static void _rebuild(char *);
 #define rebuild() _rebuild(__FILE__)
 
@@ -339,7 +349,7 @@ void
 strvfree(struct strv *v)
 {
 	free(v->buf);
-	*v = (struct strv){0};
+	memset(v, 0, sizeof(*v));
 }
 
 void *
@@ -388,8 +398,10 @@ diex(const char *fmt, ...)
 void
 cbsinit(int argc, char **argv)
 {
+	char *s;
+
 	_cbs_argc = argc;
-	_cbs_argv = bufalloc(NULL, argc, sizeof(char *));
+	_cbs_argv = bufalloc(nullptr, argc, sizeof(char *));
 	for (int i = 0; i < argc; i++) {
 		if (!(_cbs_argv[i] = strdup(argv[i]))) {
 			/* We might not have set _cbs_argv[0] yet, so we can’t use die() */
@@ -397,18 +409,38 @@ cbsinit(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	/* Cd to dirname(argv[0]).  We can’t use dirname(3) because it may modify
+	   the source string. */
+	if (s = strrchr(_cbs_argv[0], '/')) {
+		s[0] = '\0';
+		if (chdir(_cbs_argv[0]) == -1)
+			die("chdir: %s", s);
+		s[0] = '/';
+	}
 }
 
 static size_t
-_next_powerof2(size_t n)
+_next_powerof2(size_t x)
 {
-	if (n && !(n & (n - 1)))
-		return n;
+#if defined(__has_builtin) && __has_builtin(__builtin_clzl)
+	x = x <= 1 ? 1 : 1 << (64 - __builtin_clzl(x - 1));
+#else
+	if (x) {
+		x--;
+		x |= x >> 1;
+		x |= x >> 2;
+		x |= x >> 4;
+		x |= x >> 8;
+		if (sizeof(size_t) >= 4)
+			x |= x >> 16;
+		if (sizeof(size_t) >= 8)
+			x |= x >> 32;
+	}
+	x++;
+#endif
 
-	n--;
-	for (size_t i = 1; i < sizeof(size_t); i <<= 1)
-		n |= n >> i;
-	return n + 1;
+	return x;
 }
 
 bool
@@ -430,7 +462,7 @@ binexists(const char *name)
 			return true;
 		}
 
-		p = strtok(NULL, ":");
+		p = strtok(nullptr, ":");
 	}
 
 	free(path);
@@ -447,14 +479,14 @@ cmdaddv(cmd_t *cmd, char **xs, size_t n)
 
 	memcpy(cmd->_argv + cmd->_len, xs, n * sizeof(*xs));
 	cmd->_len += n;
-	cmd->_argv[cmd->_len] = NULL;
+	cmd->_argv[cmd->_len] = nullptr;
 }
 
 void
 cmdclr(cmd_t *c)
 {
 	c->_len = 0;
-	*c->_argv = NULL;
+	*c->_argv = nullptr;
 }
 
 int
@@ -508,7 +540,7 @@ cmdexecb(cmd_t c, char **p, size_t *n)
 
 	close(fds[FD_W]);
 
-	buf = NULL;
+	buf = nullptr;
 	len = 0;
 
 	blksize = fstat(fds[FD_R], &sb) == -1 ? BUFSIZ : sb.st_blksize;
@@ -679,62 +711,44 @@ foutdatedv(const char *src, const char **deps, size_t n)
 	return false;
 }
 
-static char *
-_getcwd(void)
-{
-	char *buf = NULL;
-	size_t n = 0;
-
-	for (;;) {
-		n += PATH_MAX;
-		buf = bufalloc(buf, n, sizeof(char));
-		if (getcwd(buf, n))
-			break;
-		if (errno != ERANGE)
-			die("getcwd");
-	}
-
-	return buf;
-}
-
 void
 _rebuild(char *src)
 {
-	char *cwd, *cpy1, *cpy2, *dn, *bn;
+	char *bbn, *sbn, *argv0;
 	cmd_t cmd = {0};
+	size_t bufsiz;
 
-	cwd = _getcwd();
-	if (!(cpy1 = strdup(*_cbs_argv)))
-		die("strdup");
-	if (!(cpy2 = strdup(*_cbs_argv)))
-		die("strdup");
-	dn = dirname(cpy1);
-	bn = basename(cpy2);
+	/* We assume that the compiled binary and the source file are in the same
+	   directory. */
+	if (sbn = strrchr(src, '/'))
+		sbn++;
+	else
+		sbn = src;
+	if (bbn = strrchr(*_cbs_argv, '/'))
+		bbn++;
+	else
+		bbn = src;
 
-	if (chdir(dn) == -1)
-		die("chdir: %s", dn);
-	if (!foutdated(bn, src)) {
-		if (chdir(cwd) == -1)
-			die("chdir: %s", cwd);
-		free(cpy1);
-		free(cpy2);
-		free(cwd);
+	if (!foutdated(bbn, sbn))
 		return;
-	}
 
 	cmdadd(&cmd, "cc");
 #ifdef CBS_PTHREAD
 	cmdadd(&cmd, "-lpthread");
 #endif
-	cmdadd(&cmd, "-o", bn, src);
+	cmdadd(&cmd, "-o", bbn, sbn);
 	cmdput(cmd);
 	if (cmdexec(cmd))
 		diex("Compilation of build script failed");
 
 	cmdclr(&cmd);
 
-	if (chdir(cwd) == -1)
-		die("chdir: %s", cwd);
+	argv0 = bufalloc(nullptr, strlen(bbn) + 3, 1);
+	*_cbs_argv = argv0;
+
+	*argv0++ = '.';
+	*argv0++ = '/';
+	strcpy(argv0, bbn);
 
 	cmdaddv(&cmd, _cbs_argv, _cbs_argc);
 	execvp(*cmd._argv, cmd._argv);
@@ -761,7 +775,7 @@ pcquery(struct strv *vec, char *lib, int flags)
 	cmd_t c = {0};
 	wordexp_t we;
 
-	p = NULL;
+	p = nullptr;
 
 	cmdadd(&c, "pkg-config");
 	if (flags & PKGC_LIBS)
@@ -840,7 +854,7 @@ _tpwork(void *arg)
 		pthread_mutex_unlock(&tp->_mtx);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void
@@ -849,13 +863,13 @@ tpinit(tpool_t *tp, size_t n)
 	tp->_tcnt = n;
 	tp->_stop = false;
 	tp->_left = 0;
-	tp->_head = tp->_tail = NULL;
-	tp->_thrds = bufalloc(NULL, n, sizeof(pthread_t));
-	pthread_cond_init(&tp->_cnd, NULL);
-	pthread_mutex_init(&tp->_mtx, NULL);
+	tp->_head = tp->_tail = nullptr;
+	tp->_thrds = bufalloc(nullptr, n, sizeof(pthread_t));
+	pthread_cond_init(&tp->_cnd, nullptr);
+	pthread_mutex_init(&tp->_mtx, nullptr);
 
 	for (size_t i = 0; i < n; i++)
-		pthread_create(tp->_thrds + i, NULL, _tpwork, tp);
+		pthread_create(tp->_thrds + i, nullptr, _tpwork, tp);
 }
 
 void
@@ -868,7 +882,7 @@ tpfree(tpool_t *tp)
 	pthread_mutex_unlock(&tp->_mtx);
 
 	for (size_t i = 0; i < tp->_tcnt; i++)
-		pthread_join(tp->_thrds[i], NULL);
+		pthread_join(tp->_thrds[i], nullptr);
 
 	free(tp->_thrds);
 	while (tp->_head) {
@@ -890,7 +904,7 @@ _tpdeq(tpool_t *tp)
 	if (j) {
 		tp->_head = tp->_head->next;
 		if (!tp->_head)
-			tp->_tail = NULL;
+			tp->_tail = nullptr;
 	}
 
 	return j;
@@ -899,7 +913,7 @@ _tpdeq(tpool_t *tp)
 void
 tpenq(tpool_t *tp, tfunc_t fn, void *arg, tfree_func_t free)
 {
-	struct _tjob *j = bufalloc(NULL, 1, sizeof(struct _tjob));
+	struct _tjob *j = bufalloc(nullptr, 1, sizeof(struct _tjob));
 	*j = (struct _tjob){
 		.fn = fn,
 		.arg = arg,
