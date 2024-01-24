@@ -1,6 +1,6 @@
 .Dd 24 January, 2024
 .Dt GRAB 1
-.Os Grab 2.1.2
+.Os Grab 2.2.0
 .Sh NAME
 .Nm grab ,
 .Nm "git grab"
@@ -8,7 +8,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl s | z
-.Op Fl bcfnU
+.Op Fl bcfinU
 .Ar pattern
 .Op Ar
 .Nm
@@ -16,7 +16,7 @@
 .Pp
 .Nm "git grab"
 .Op Fl s | z
-.Op Fl bcnU
+.Op Fl bcinU
 .Ar pattern
 .Op Ar glob ...
 .Nm "git grab"
@@ -107,6 +107,15 @@ This option is always enabled when using
 .Nm "git grab" .
 .It Fl h , Fl Fl help
 Display help information by opening this manual page.
+.It Fl i , Fl Fl ignore\-case
+Match patterns case-insensitively.
+When PCRE support is available this option respects Unicode
+.Po
+i.e. the pattern
+.Sq x/ß/
+will match
+.Sq ẞ
+.Pc .
 .It Fl n , Fl Fl newline
 Treat the newline as a special character by disallowing the dot
 .Pq Sq \&.
