@@ -210,12 +210,12 @@ main(int argc, char **argv)
 	ops = comppat(argv[0]);
 
 #if GIT_GRAB
-	if ((flist = getfstream(argc - 1, argv + 1)) == nullptr)
+	if (!(flist = getfstream(argc - 1, argv + 1)))
 		die("getfstream");
 	while ((nr = getdelim(&entry, &len, '\0', flist)) > 0) {
 		FILE *fp;
 
-		if ((fp = fopen(entry, "r")) == nullptr)
+		if (!(fp = fopen(entry, "r")))
 			warn("fopen: %s", entry);
 		else {
 			grab(ops, fp, entry);
@@ -234,7 +234,7 @@ main(int argc, char **argv)
 
 			if (streq(argv[i], "-")) {
 				grab(ops, stdin, "-");
-			} else if ((fp = fopen(argv[i], "r")) == nullptr) {
+			} else if (!(fp = fopen(argv[i], "r"))) {
 				warn("fopen: %s", argv[i]);
 			} else {
 				grab(ops, fp, argv[i]);
@@ -315,7 +315,8 @@ comppat(char8_t *s)
 		dapush(&ops, op);
 
 		if (*s) {
-			if (s += u8tor(&ch, s), ch == RUNE_ERROR)
+			s += u8tor(&ch, s);
+			if (ch == RUNE_ERROR)
 				diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
 		}
 		while (*s && xisspace(*s))
@@ -337,7 +338,7 @@ grab(struct ops ops, FILE *stream, const char *filename)
 	do {
 		static_assert(sizeof(char) == 1, "sizeof(char) != 1; wtf?");
 		chars.cap += BUFSIZ;
-		if ((chars.buf = realloc(chars.buf, chars.cap)) == nullptr)
+		if (!(chars.buf = realloc(chars.buf, chars.cap)))
 			die("realloc");
 		chars.len += n = fread(chars.buf + chars.len, 1, BUFSIZ, stream);
 	} while (n == BUFSIZ);
@@ -775,7 +776,7 @@ mkregex(char8_t *s, size_t n)
 	cflags = REG_EXTENDED | REG_UTF | (nflag ? REG_NEWLINE : REG_DOTALL);
 	if (!Uflag)
 		cflags |= REG_UCP;
-	if ((ret = regcomp(&r, s, cflags)) != 0) {
+	if (ret = regcomp(&r, s, cflags)) {
 		char emsg[256];
 		regerror(ret, &r, emsg, sizeof(emsg));
 		diex("Failed to compile regex: %s", emsg);

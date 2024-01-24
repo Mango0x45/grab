@@ -19,7 +19,8 @@
 
 #define CC "cc"
 #define CFLAGS \
-	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-Wno-pointer-sign", "-pipe"
+	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-Wno-parentheses", \
+		"-Wno-pointer-sign", "-pipe"
 #define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
 #ifdef __APPLE__
 #	define CFLAGS_RELEASE "-O3"
