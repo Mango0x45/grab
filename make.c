@@ -49,9 +49,9 @@ main(int argc, char **argv)
 	int opt;
 	cmd_t c = {0};
 	struct option longopts[] = {
-		{"debug",   no_argument, 0, 'd'},
-		{"no-pcre", no_argument, 0, 'P'},
-		{nullptr,   0,           0, 0  },
+		{"debug",   no_argument, nullptr, 'd'},
+		{"no-pcre", no_argument, nullptr, 'P'},
+		{nullptr,   0,           nullptr, 0  },
 	};
 
 	cbsinit(argc, argv);
