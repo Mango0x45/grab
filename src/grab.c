@@ -33,6 +33,8 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+#define lengthof(a) (sizeof(a) / sizeof(*(a)))
+
 #define die(...)  err(EXIT_FAILURE, __VA_ARGS__)
 #define diex(...) errx(EXIT_FAILURE, __VA_ARGS__)
 #define warn(...) \
@@ -804,8 +806,13 @@ getfstream(int argc, char *argv[argc])
 	case -1:
 		die("fork");
 	case 0:;
-		size_t len = argc + 6;
+		size_t len;
 		char **args;
+		static const char *git_grep_args[] = {
+			"git", "grep", "--cached", "-Ilz", "",
+		};
+
+		len = argc + lengthof(git_grep_args) + 1;
 
 		close(fds[FD_R]);
 		if (dup2(fds[FD_W], STDOUT_FILENO) == -1)
@@ -814,11 +821,7 @@ getfstream(int argc, char *argv[argc])
 
 		if (!(args = malloc(len * sizeof(char *))))
 			die("malloc");
-		args[0] = "git";
-		args[1] = "grep";
-		args[2] = "--cached";
-		args[3] = "-Ilz";
-		args[4] = "";
+		memcpy(args, git_grep_args, sizeof(git_grep_args));
 		memcpy(args + 5, argv, argc * sizeof(char *));
 		args[len - 1] = nullptr;
 
