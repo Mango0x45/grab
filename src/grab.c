@@ -95,7 +95,7 @@ static int svposcmp(const void *, const void *);
 static char *env_or_default(const char *, const char *);
 
 static int filecnt, rv;
-static bool bflag, cflag, nflag, sflag, Uflag, zflag;
+static bool bflag, cflag, nflag, iflag, sflag, Uflag, zflag;
 static bool fflag = GIT_GRAB;
 static put_func *putf;
 
@@ -114,9 +114,9 @@ usage(const char *s)
 {
 	fprintf(stderr,
 #if GIT_GRAB
-	        "Usage: %s [-s | -z] [-bcnU] pattern [glob ...]\n"
+	        "Usage: %s [-s | -z] [-bcinU] pattern [glob ...]\n"
 #else
-	        "Usage: %s [-s | -z] [-bcfnU] pattern [file ...]\n"
+	        "Usage: %s [-s | -z] [-bcfinU] pattern [file ...]\n"
 #endif
 	        "       %s -h\n",
 	        s, s);
@@ -135,6 +135,7 @@ main(int argc, char **argv)
 		{"filenames",     no_argument, nullptr, 'f'},
 #endif
 		{"help",          no_argument, nullptr, 'h'},
+		{"ignore-case",   no_argument, nullptr, 'i'},
 		{"newline",       no_argument, nullptr, 'n'},
 		{"strip-newline", no_argument, nullptr, 's'},
 		{"no-unicode",    no_argument, nullptr, 'U'},
@@ -147,9 +148,9 @@ main(int argc, char **argv)
 	size_t len;
 	ssize_t nr;
 	FILE *flist;
-	const char *opts = "bchnsUz";
+	const char *opts = "bchinsUz";
 #else
-	const char *opts = "bcfhnsUz";
+	const char *opts = "bcfhinsUz";
 #endif
 
 	argv[0] = basename(argv[0]);
@@ -171,6 +172,9 @@ main(int argc, char **argv)
 			fflag = true;
 			break;
 #endif
+		case 'i':
+			iflag = true;
+			break;
 		case 'n':
 			nflag = true;
 			break;
@@ -776,6 +780,8 @@ mkregex(char8_t *s, size_t n)
 
 	s[n] = 0;
 	cflags = REG_EXTENDED | REG_UTF | (nflag ? REG_NEWLINE : REG_DOTALL);
+	if (iflag)
+		cflags |= REG_ICASE;
 	if (!Uflag)
 		cflags |= REG_UCP;
 	if (ret = regcomp(&r, s, cflags)) {
