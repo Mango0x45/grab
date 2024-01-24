@@ -804,7 +804,7 @@ getfstream(int argc, char *argv[argc])
 	case -1:
 		die("fork");
 	case 0:;
-		size_t len = argc + 5;
+		size_t len = argc + 6;
 		char **args;
 
 		close(fds[FD_R]);
@@ -815,14 +815,15 @@ getfstream(int argc, char *argv[argc])
 		if (!(args = malloc(len * sizeof(char *))))
 			die("malloc");
 		args[0] = "git";
-		args[1] = "ls-files";
-		args[2] = "-z";
-		args[3] = "--";
-		memcpy(args + 4, argv, argc * sizeof(char *));
+		args[1] = "grep";
+		args[2] = "--cached";
+		args[3] = "-Ilz";
+		args[4] = "";
+		memcpy(args + 5, argv, argc * sizeof(char *));
 		args[len - 1] = nullptr;
 
 		execvp("git", args);
-		die("execvp: git ls-files -z");
+		die("execvp: git grep --cached -Ilz ''");
 	}
 
 	close(fds[FD_W]);

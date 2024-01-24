@@ -1,4 +1,4 @@
-.Dd 23 January, 2024
+.Dd 24 January, 2024
 .Dt GRAB 1
 .Os Grab 2.1.1
 .Sh NAME
@@ -46,14 +46,11 @@ utility in all ways except for two exceptions.
 The first is that if no files
 .Pq globs in this case to be precise
 are specified,
-input is not read from the standard-input but instead all files returned
-by an invocation of
-.Xr git\-ls\-files 1
-are processed.
+input is not read from the standard-input but instead all non-binary
+files found in the current git-repository are processed.
 If the user provides one or more globs,
-only the files returned by
-.Xr git\-ls\-files 1
-that match one or more of the given globs will be processed.
+only the non-binary files in the current git-repository that match one or
+more of the given globs will be processed.
 Secondly, the
 .Fl f
 option is not available;
@@ -315,7 +312,7 @@ formatted manual pages:
 .Pp
 .Dl $ grab \-n 'x/^\e.Sh SYNOPSIS\en(^.*\en(?!^\e.Sh))+/' foo.1 bar.1
 .Sh SEE ALSO
-.Xr git\-ls\-files 1 ,
+.Xr git 1 ,
 .Xr grep 1 ,
 .Xr pcre2syntax 3 ,
 .Xr regex 7
