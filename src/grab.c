@@ -787,7 +787,7 @@ mkregex(char8_t *s, size_t n)
 	if (ret = regcomp(&r, s, cflags)) {
 		char emsg[256];
 		regerror(ret, &r, emsg, sizeof(emsg));
-		diex("Failed to compile regex: %s", emsg);
+		diex("Failed to compile regex ‘%s’: %s", s, emsg);
 	}
 	s[n] = c;
 
