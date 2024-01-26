@@ -463,8 +463,10 @@ cmdH(struct sv sv, struct matches *ms, struct ops ops, size_t i,
 		}
 
 		prev = rm;
-		if (rm.rm_so == rm.rm_eo)
-			rm.rm_eo++;
+		if (rm.rm_so == rm.rm_eo) {
+			rune unused;
+			rm.rm_eo += u8tor_uc(&unused, sv.p + rm.rm_eo);
+		}
 		rm = (regmatch_t){
 			.rm_so = rm.rm_eo,
 			.rm_eo = sv.len,
@@ -554,8 +556,10 @@ cmdX(struct sv sv, struct matches *ms, struct ops ops, size_t i,
 		}
 
 		prev = rm;
-		if (rm.rm_so == rm.rm_eo)
-			rm.rm_eo++;
+		if (rm.rm_so == rm.rm_eo) {
+			rune unused;
+			rm.rm_eo += u8tor_uc(&unused, sv.p + rm.rm_eo);
+		}
 		rm = (regmatch_t){
 			.rm_so = rm.rm_eo,
 			.rm_eo = sv.len,
