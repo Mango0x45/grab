@@ -411,10 +411,13 @@ cmdh(struct sv sv, struct matches *ms, struct ops ops, size_t i,
 		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
 			break;
 
-		dapush(ms, ((struct sv){sv.p + rm.rm_so, rm.rm_eo - rm.rm_so}));
+		if (rm.rm_so < rm.rm_eo)
+			dapush(ms, ((struct sv){sv.p + rm.rm_so, rm.rm_eo - rm.rm_so}));
+		else {
+			rune unused;
+			rm.rm_eo += u8tor_uc(&unused, sv.p + rm.rm_eo);
+		}
 
-		if (rm.rm_so == rm.rm_eo)
-			rm.rm_eo++;
 		rm = (regmatch_t){
 			.rm_so = rm.rm_eo,
 			.rm_eo = sv.len,
@@ -492,20 +495,23 @@ cmdx(struct sv sv, struct matches *ms, struct ops ops, size_t i,
 
 		if (regexec(&op.pat, sv.p, 1, &rm, REG_STARTEND) == REG_NOMATCH)
 			break;
-		nsv = (struct sv){
-			.p = sv.p + rm.rm_so,
-			.len = rm.rm_eo - rm.rm_so,
-		};
-		if (i + 1 == ops.len)
-			putf(nsv, ms, filename);
-		else {
-			size_t save = ms->len;
-			op_table[(uchar)ops.buf[i + 1].c](nsv, ms, ops, i + 1, filename);
-			ms->len = save;
+		if (rm.rm_so < rm.rm_eo) {
+			nsv = (struct sv){
+				.p = sv.p + rm.rm_so,
+				.len = rm.rm_eo - rm.rm_so,
+			};
+			if (i + 1 == ops.len)
+				putf(nsv, ms, filename);
+			else {
+				size_t save = ms->len;
+				op_table[(uchar)ops.buf[i + 1].c](nsv, ms, ops, i + 1,
+				                                  filename);
+				ms->len = save;
+			}
+		} else {
+			rune unused;
+			rm.rm_eo += u8tor_uc(&unused, sv.p + rm.rm_eo);
 		}
-
-		if (rm.rm_so == rm.rm_eo)
-			rm.rm_eo++;
 		rm = (regmatch_t){
 			.rm_so = rm.rm_eo,
 			.rm_eo = sv.len,
