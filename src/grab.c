@@ -349,22 +349,30 @@ grab(struct ops ops, FILE *stream, const char *filename)
 		chars.len += n = fread(chars.buf + chars.len, 1, BUFSIZ, stream);
 	} while (n == BUFSIZ);
 
-	if (ferror(stream))
+	if (ferror(stream)) {
 		warn("fread: %s", filename);
-	else {
-		struct sv sv = {
-			.p = chars.buf,
-			.len = chars.len,
-		};
-		struct matches ms;
-
-		dainit(&ms, 4);
-		pos.col = pos.row = 1;
-		pos.bp = pos.p = chars.buf;
-		op_table[(uchar)ops.buf[0].c](sv, &ms, ops, 0, filename);
-		free(ms.buf);
+		goto out;
 	}
 
+	const char8_t *p;
+	struct sv sv = {
+		.p = chars.buf,
+		.len = chars.len,
+	};
+	struct matches ms;
+
+	if (p = u8chk(chars.buf, chars.len)) {
+		warnx("%s: Invalid UTF-8 near ‘%02X’", filename, *p);
+		goto out;
+	}
+
+	dainit(&ms, 4);
+	pos.col = pos.row = 1;
+	pos.bp = pos.p = chars.buf;
+	op_table[(uchar)ops.buf[0].c](sv, &ms, ops, 0, filename);
+	free(ms.buf);
+
+out:
 	free(chars.buf);
 }
 
