@@ -1,3 +1,10 @@
+#if __has_include(<features.h>)
+#	include <features.h>
+#	ifdef __GLIBC__
+#		define _POSIX_C_SOURCE 200809L
+#	endif
+#endif
+
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -6,16 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#if defined(__has_include) && __has_include(<features.h>)
-#	include <features.h>
-#endif
-
-#ifdef __GLIBC__
-#	define _POSIX_C_SOURCE 200809L
-#endif
-
 #include "cbs.h"
-#include "src/compat.h"
 
 #define CC "cc"
 #define WARNINGS \
