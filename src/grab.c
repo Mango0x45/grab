@@ -27,7 +27,6 @@
 #include <rune.h>
 #include <utf8.h>
 
-#include "compat.h"
 #include "da.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -254,9 +253,9 @@ main(int argc, char **argv)
 #	if GIT_GRAB
 	free(entry);
 #	endif
-	for (size_t i = 0; i < ops.len; i++) {
-		if (ops.buf[i].alloced)
-			regfree(&ops.buf[i].pat);
+	da_foreach (&ops, op) {
+		if (op->alloced)
+			regfree(&op->pat);
 	}
 	free(ops.buf);
 #endif
@@ -302,7 +301,7 @@ comppat(char8_t *s)
 		   delimiter if this is the last operation in the query pattern. */
 		p = s;
 		len = strlen(s);
-		if (!(s = (char8_t *)u8chr(s, ch, len)))
+		if (!(s = u8chr(s, ch, len)))
 			s = p + len;
 
 		if (s - p == 0) {
@@ -727,10 +726,10 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 	}
 
 	p = sv.p;
-	for (size_t i = 0; i < valid.len; i++) {
-		struct sv m = valid.buf[i];
-		printf("%.*s\33[%sm%.*s\33[0m", (int)(m.p - p), p, hl, (int)m.len, m.p);
-		p = m.p + m.len;
+	da_foreach (&valid, m) {
+		printf("%.*s\33[%sm%.*s\33[0m", (int)(m->p - p), p, hl, (int)m->len,
+		       m->p);
+		p = m->p + m->len;
 	}
 	fwrite(p, 1, sv.p + sv.len - p, stdout);
 
