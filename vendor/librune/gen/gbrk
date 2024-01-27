@@ -2,17 +2,17 @@
 
 cache()
 {
-	name="/tmp/librune/$(basename "$1")"
+	name="/tmp/librune/gbrk/$(basename "$1")"
 	if test ! -f "$name"
 	then
-		mkdir -p /tmp/librune
+		mkdir -p /tmp/librune/gbrk
 		wget -q "$1" -O "$name"
 	fi
 }
 
 set -e
 cd "${0%/*}/.."
-exec >lib/internal/gbrk_lookup.h
+exec >include/internal/gbrk_lookup.h
 
 readonly URL1='https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakProperty.txt'
 readonly URL2='https://www.unicode.org/Public/UCD/latest/ucd/emoji/emoji-data.txt'
@@ -104,10 +104,10 @@ END {
 		lo = i
 		while (props[lo] == props[i + 1])
 			i++
-		printf "\t{0x%05X, 0x%05X, %s},\n", lo, i, props[lo]
+		printf "\t{0x%06X, 0x%06X, %s},\n", lo, i, props[lo]
 	}
 }
-' /tmp/librune/* | sort
+' /tmp/librune/gbrk/* | sort
 
 cat <<C
 };

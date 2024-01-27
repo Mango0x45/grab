@@ -9,13 +9,14 @@
 #define CBS_PTHREAD
 #include "cbs.h"
 
-#define CC "cc"
+#define CC         "cc"
+#define WARNINGS   "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-Wno-attributes"
+#define CFLAGS_ALL WARNINGS, "-pipe", "-std=c2x"
+#define CFLAGS_DBG CFLAGS_ALL, "-g", "-ggdb3", "-Og"
 #ifdef __APPLE__
-#	define CFLAGS "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", "-O3"
+#	define CFLAGS_RLS CFLAGS_ALL, "-O3"
 #else
-#	define CFLAGS \
-		"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-pipe", "-O3", \
-			"-march=native", "-mtune=native"
+#	define CFLAGS_RLS CFLAGS_ALL, "-O3", "-march=native", "-mtune=native"
 #endif
 
 #define cmdprc(c) \
@@ -32,19 +33,40 @@
 static void work(void *);
 static int globerr(const char *, int);
 
+static bool lflag, rflag;
+
 int
 main(int argc, char **argv)
 {
+	int opt;
+
 	cbsinit(argc, argv);
 	rebuild();
 
-	if (argc > 1) {
-		if (streq(argv[1], "clean")) {
+	while ((opt = getopt(argc, argv, "lr")) != -1) {
+		switch (opt) {
+		case 'l':
+			lflag = true;
+			break;
+		case 'r':
+			rflag = true;
+			break;
+		default:
+			fprintf(stderr, "Usage: %s [-lr]\n", *argv);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	argc -= optind;
+	argv += optind;
+
+	if (argc >= 1) {
+		if (streq(*argv, "clean")) {
 			cmd_t c = {0};
 			cmdadd(&c, "find", ".", "-name", "*.[ao]", "-delete");
 			cmdprc(c);
 		} else {
-			diex("invalid subcommand -- '%s'", argv[1]);
+			diex("invalid subcommand -- '%s'", *argv);
 			exit(EXIT_FAILURE);
 		}
 	} else {
@@ -96,8 +118,13 @@ work(void *p)
 
 	if (foutdated(dst, src)) {
 		env_or_default(&sv, "CC", CC);
-		env_or_default(&sv, "CFLAGS", CFLAGS);
+		if (rflag)
+			env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
+		else
+			env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
 		cmdaddv(&c, sv.buf, sv.len);
+		if (lflag)
+			cmdadd(&c, "-flto");
 		cmdadd(&c, "-Iinclude", "-fPIC", "-o", dst, "-c", src);
 		cmdprc(c);
 	}

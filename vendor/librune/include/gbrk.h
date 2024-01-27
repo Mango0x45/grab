@@ -5,6 +5,6 @@
 #include "internal/types.h" /* IWYU pragma: export */
 
 size_t u8glen(const char8_t *, size_t);
-const char8_t *u8gnext(struct u8view *, const char8_t **, size_t *);
+size_t u8gnext(struct u8view *, const char8_t **, size_t *);
 
 #endif /* !RUNE_GBRK_H */

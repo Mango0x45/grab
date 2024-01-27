@@ -1,9 +1,9 @@
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
+#define _RUNE_NO_MACRO_WRAPPER 1
 #include "utf8.h"
-
-#include "internal/common.h"
 
 /* NOTE: The memmem*() functions were taken directly from the memmem()
    implementation on OpenBSD.  As a result, these functions are licensed under
@@ -32,7 +32,7 @@
        TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
        SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-static const char8_t *
+static char8_t *
 memmem2(const char8_t *h, size_t k, const char8_t *n)
 {
 	uint16_t hw, nw;
@@ -41,12 +41,12 @@ memmem2(const char8_t *h, size_t k, const char8_t *n)
 
 	for (h += 2, k -= 2; k; k--, hw = hw << 8 | *h++) {
 		if (hw == nw)
-			return h - 2;
+			return (char8_t *)h - 2;
 	}
-	return hw == nw ? h - 2 : nullptr;
+	return hw == nw ? (char8_t *)h - 2 : nullptr;
 }
 
-static const char8_t *
+static char8_t *
 memmem3(const char8_t *h, size_t k, const char8_t *n)
 {
 	uint32_t hw, nw;
@@ -55,12 +55,12 @@ memmem3(const char8_t *h, size_t k, const char8_t *n)
 
 	for (h += 3, k -= 3; k; k--, hw = (hw | *h++) << 8) {
 		if (hw == nw)
-			return h - 3;
+			return (char8_t *)h - 3;
 	}
-	return hw == nw ? h - 3 : nullptr;
+	return hw == nw ? (char8_t *)h - 3 : nullptr;
 }
 
-static const char8_t *
+static char8_t *
 memmem4(const char8_t *h, size_t k, const char8_t *n)
 {
 	uint32_t hw, nw;
@@ -69,12 +69,12 @@ memmem4(const char8_t *h, size_t k, const char8_t *n)
 
 	for (h += 4, k -= 4; k; k--, hw = hw << 8 | *h++) {
 		if (hw == nw)
-			return h - 4;
+			return (char8_t *)h - 4;
 	}
-	return hw == nw ? h - 4 : nullptr;
+	return hw == nw ? (char8_t *)h - 4 : nullptr;
 }
 
-const char8_t *
+char8_t *
 u8chr(const char8_t *s, rune ch, size_t n)
 {
 	char8_t buf[U8_LEN_MAX];

@@ -3,7 +3,7 @@
 #include "builder.h"
 
 void
-u8strfree(struct u8buf b)
+u8strfree(struct u8str b)
 {
 	free(b.p);
 }

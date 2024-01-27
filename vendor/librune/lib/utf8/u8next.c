@@ -1,14 +1,16 @@
+#define _RUNE_NO_MACRO_WRAPPER 1
 #include "utf8.h"
 
-#include "internal/common.h"
-
-const char8_t *
+int
 u8next(rune *ch, const char8_t **s, size_t *n)
 {
-	int m;
+	int m = 0;
 
-	if (*n == 0)
-		return nullptr;
-	*n -= m = u8tor_uc(ch, *s);
-	return *s += m;
+	if (*n) {
+		m = u8tor_uc(ch, *s);
+		*n -= m;
+		*s += m;
+	}
+
+	return m;
 }

@@ -1,4 +1,4 @@
-.Dd January 18 2024
+.Dd January 27 2024
 .Dt U8SET 3
 .Os
 .Sh NAME
@@ -10,9 +10,9 @@
 .Sh SYNOPSIS
 .In utf8.h
 .Ft int
-.Fn rtou8 "const char8_t *s" "rune ch" "size_t n"
+.Fn rtou8 "char8_t *s" "rune ch" "size_t n"
 .Ft size_t
-.Fn u8set "const char8_t *s" "rune ch" "size_t n"
+.Fn u8set "char8_t *s" "rune ch" "size_t n"
 .Sh DESCRIPTION
 The
 .Fn rtou8

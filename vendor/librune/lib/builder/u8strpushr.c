@@ -3,8 +3,8 @@
 
 #include "internal/common.h"
 
-struct u8buf *
-u8strpushr(struct u8buf *b, rune ch)
+struct u8str *
+u8strpushr(struct u8str *b, rune ch)
 {
 	if (!u8strgrow(b, b->len + u8wdth(ch)))
 		return nullptr;

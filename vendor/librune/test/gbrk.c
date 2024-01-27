@@ -51,7 +51,7 @@ test(char *raw)
 	char8_t *p, *buf;
 	const char8_t *s;
 	size_t bufsiz = 4096;
-	struct grapheme graph;
+	struct u8view graph;
 
 	if (!(buf = malloc(bufsiz)))
 		die("malloc");

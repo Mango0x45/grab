@@ -4,8 +4,7 @@ Librune is a C library that aims to make interacting with Unicode and
 UTF-8 easy in C.  There are no plans at the moment to support UTF-16 or
 -32, but they may be supported if such a usecase ever comes up.
 
-This library has been tested to build and work properly on both C99 and
-C23.
+This library requires C23.
 
 
 ## Terminology
@@ -19,10 +18,37 @@ represents a rune (shocker).
 
 This library contains the following headers:
 
-1. `gbrk.h` — grapheme-iteration functions
-2. `rune.h` — rune-constants, -macros, and -functions
-3. `utf8.h` — UTF-8 encoding, decoding, iteration, etc.
-4. `builder.h` — string building functions
+- `builder.h` — string building functions
+- `gbrk.h` — grapheme-iteration functions
+- `rtype.h` — rune categorization à la `ctype.h`
+- `rune.h` — rune-constants, -macros, and -functions
+- `utf8.h` — UTF-8 encoding, decoding, iteration, etc.
+
+
+## Compilation
+
+This library comes with a build script in the form of `make.c`.  To build
+the library all you need is a C compiler.  The build script will build a
+static library called ‘librune.a’.
+
+```sh
+# Make sure to link with pthread
+cc -lpthread -o make make.c
+./make
+```
+
+If you want to build the library in release-mode (optimizations enabled),
+simply pass the `-r` flag to the build script:
+
+```sh
+./make -r
+```
+
+You can also pass the `-l` flag to enable link-time optimizations:
+
+```sh
+./make -lr
+```
 
 
 ## Installation

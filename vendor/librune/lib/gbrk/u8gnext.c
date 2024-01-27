@@ -1,12 +1,10 @@
-#include <sys/types.h>
+#include <stddef.h>
 
 #include "gbrk.h"
 #include "utf8.h"
 
 #include "internal/common.h"
 #include "internal/gbrk_lookup.h"
-
-#define lengthof(a) (sizeof(a) / sizeof(*(a)))
 
 struct gbrk_state {
 	enum {
@@ -21,7 +19,7 @@ struct gbrk_state {
 static bool u8isgbrk(rune, rune, struct gbrk_state *);
 static gbrk_prop getprop(rune);
 
-const char8_t *
+size_t
 u8gnext(struct u8view *g, const char8_t **s, size_t *n)
 {
 	int m;
@@ -30,7 +28,7 @@ u8gnext(struct u8view *g, const char8_t **s, size_t *n)
 	struct gbrk_state gs = {0};
 
 	if (*n == 0)
-		return nullptr;
+		return 0;
 
 	g->p = p = *s;
 	p += u8tor_uc(&ch1, p);
@@ -44,7 +42,8 @@ u8gnext(struct u8view *g, const char8_t **s, size_t *n)
 			m = u8tor_uc(&ch2, p);
 		if (u8isgbrk(ch1, ch2, &gs)) {
 			*n -= g->len = p - *s;
-			return *s = p;
+			*s = p;
+			return g->len;
 		}
 
 		ch1 = ch2;
@@ -145,13 +144,13 @@ do_break:
 gbrk_prop
 getprop(rune ch)
 {
-	ssize_t lo, hi;
+	ptrdiff_t lo, hi;
 
 	lo = 0;
 	hi = lengthof(gbrk_prop_tbl) - 1;
 
 	while (lo <= hi) {
-		ssize_t i = (lo + hi) / 2;
+		ptrdiff_t i = (lo + hi) / 2;
 
 		if (ch < gbrk_prop_tbl[i].lo)
 			hi = i - 1;
