@@ -273,7 +273,7 @@ comppat(char8_t *s)
 	while (*s && xisspace(*s))
 		s++;
 	if (!*s)
-		diex("Input string terminated prematurely");
+		diex("input string terminated prematurely");
 
 	do {
 		int w;
@@ -287,16 +287,16 @@ comppat(char8_t *s)
 		   messages when someone uses a non-ASCII operator. */
 		w = u8tor(&ch, s);
 		if (ch == RUNE_ERROR)
-			diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
+			diex("invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
 		if (w > 1 || !op_table[ch])
-			diex("Invalid operator ‘%.*s’", w, s);
+			diex("invalid operator ‘%.*s’", w, s);
 		op.c = *s++;
 
 		s += u8tor(&ch, s);
 		if (ch == RUNE_ERROR)
-			diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
+			diex("invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
 		if (ch == '\0')
-			diex("Input string terminated prematurely");
+			diex("input string terminated prematurely");
 
 		/* Find the closing delimiter.  The user is allowed to omit the closing
 		   delimiter if this is the last operation in the query pattern. */
@@ -307,9 +307,9 @@ comppat(char8_t *s)
 
 		if (s - p == 0) {
 			if (op.c != 'h')
-				diex("Empty regex given to ‘%c’", op.c);
+				diex("empty regex given to ‘%c’", op.c);
 			if (ops.len == 0)
-				diex("Empty ‘h’ is not allowed as the first operator");
+				diex("empty ‘h’ is not allowed as the first operator");
 			op.pat = ops.buf[ops.len - 1].pat;
 		} else
 			op.pat = mkregex(p, s - p);
@@ -323,7 +323,7 @@ comppat(char8_t *s)
 		if (*s) {
 			s += u8tor(&ch, s);
 			if (ch == RUNE_ERROR)
-				diex("Invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
+				diex("invalid UTF-8 sequence near ‘%02hhX’", s[-1]);
 		}
 		while (*s && xisspace(*s))
 			s++;
@@ -362,7 +362,7 @@ grab(struct ops ops, FILE *stream, const char *filename)
 	struct matches ms;
 
 	if (p = u8chk(chars.buf, chars.len)) {
-		warnx("%s: Invalid UTF-8 near ‘%02X’", filename, *p);
+		warnx("%s: invalid UTF-8 near ‘%02X’", filename, *p);
 		goto out;
 	}
 
@@ -805,7 +805,7 @@ mkregex(char8_t *s, size_t n)
 	if (ret = regcomp(&r, s, cflags)) {
 		char emsg[256];
 		regerror(ret, &r, emsg, sizeof(emsg));
-		diex("Failed to compile regex ‘%s’: %s", s, emsg);
+		diex("failed to compile regex ‘%s’: %s", s, emsg);
 	}
 	s[n] = c;
 
