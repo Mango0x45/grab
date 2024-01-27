@@ -25,6 +25,14 @@ build script:
 $ ./make --no-pcre
 ```
 
+If you want to build with optimizations enabled, you can pass the
+`--release` flag.  You can additionally pass the `--lto` flag to enable
+link-time optimizations:
+
+```sh
+$ ./make --release --lto
+```
+
 
 ## Description
 
