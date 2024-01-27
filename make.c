@@ -18,14 +18,15 @@
 #include "src/compat.h"
 
 #define CC "cc"
-#define CFLAGS \
+#define WARNINGS \
 	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-Wno-parentheses", \
-		"-Wno-pointer-sign", "-pipe"
-#define CFLAGS_DEBUG "-DGRAB_DEBUG", "-g", "-ggdb3"
+		"-Wno-pointer-sign", "-Wno-attributes"
+#define CFLAGS_ALL WARNINGS, "-pipe", "-std=c2x"
+#define CFLAGS_DBG CFLAGS_ALL, "-DGRAB_DEBUG", "-Og", "-g", "-ggdb3"
 #ifdef __APPLE__
-#	define CFLAGS_RELEASE "-O3"
+#	define CFLAGS_RLS CFLAGS_ALL, "-O3"
 #else
-#	define CFLAGS_RELEASE "-O3", "-march=native", "-mtune=native"
+#	define CFLAGS_RLS CFLAGS_ALL, "-O3", "-march=native", "-mtune=native"
 #endif
 #define PREFIX "/usr/local"
 
@@ -41,7 +42,7 @@
 
 static char *mkoutpath(const char *);
 
-static bool dflag, Pflag;
+static bool lflag, Pflag, rflag;
 
 int
 main(int argc, char **argv)
@@ -49,24 +50,28 @@ main(int argc, char **argv)
 	int opt;
 	cmd_t c = {0};
 	struct option longopts[] = {
-		{"debug",   no_argument, nullptr, 'd'},
+		{"lto",     no_argument, nullptr, 'l'},
 		{"no-pcre", no_argument, nullptr, 'P'},
+		{"release", no_argument, nullptr, 'r'},
 		{nullptr,   0,           nullptr, 0  },
 	};
 
 	cbsinit(argc, argv);
 	rebuild();
 
-	while ((opt = getopt_long(argc, argv, "dP", longopts, nullptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "lPr", longopts, nullptr)) != -1) {
 		switch (opt) {
-		case 'd':
-			dflag = true;
+		case 'l':
+			lflag = true;
 			break;
 		case 'P':
 			Pflag = true;
 			break;
+		case 'r':
+			rflag = true;
+			break;
 		default:
-			fputs("Usage: make [-dP]\n", stderr);
+			fputs("Usage: make [-lPd]\n", stderr);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -102,6 +107,10 @@ main(int argc, char **argv)
 
 		if (!fexists("vendor/librune/librune.a")) {
 			cmdadd(&c, "vendor/librune/make");
+			if (rflag)
+				cmdadd(&c, "-r");
+			if (lflag)
+				cmdadd(&c, "-l");
 			CMDPRC(c);
 		}
 
@@ -109,16 +118,18 @@ main(int argc, char **argv)
 		              "vendor/librune/librune.a"))
 		{
 			env_or_default(&sv, "CC", CC);
-			if (dflag)
-				env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_DEBUG);
+			if (rflag)
+				env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
 			else
-				env_or_default(&sv, "CFLAGS", CFLAGS, CFLAGS_RELEASE);
+				env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
 
 			for (int i = 0; i < 2; i++) {
 				char buf[] = "-DGIT_GRAB=X";
 				buf[sizeof(buf) - 2] = i + '0';
 
 				cmdaddv(&c, sv.buf, sv.len);
+				if (lflag)
+					cmdadd(&c, "-flto");
 #ifdef __GLIBC__
 				cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
 #endif
