@@ -1,10 +1,4 @@
-#if __has_include(<features.h>)
-#	include <features.h>
-#	ifdef __GLIBC__
-#		define _POSIX_C_SOURCE 200809L
-#	endif
-#endif
-
+#define _GNU_SOURCE
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -112,7 +106,7 @@ main(int argc, char **argv)
 			CMDPRC(c);
 		}
 
-		if (foutdated("./grab", "src/grab.c", "src/compat.h", "src/da.h",
+		if (foutdated("./grab", "src/grab.c", "src/da.h",
 		              "vendor/librune/librune.a"))
 		{
 			env_or_default(&sv, "CC", CC);

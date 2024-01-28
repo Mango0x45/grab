@@ -722,7 +722,7 @@ _rebuild(char *src)
 		return;
 	}
 
-	cmdadd(&cmd, "cc");
+	cmdadd(&cmd, "cc", "-std=c2x");
 #ifdef CBS_PTHREAD
 	cmdadd(&cmd, "-lpthread");
 #endif
