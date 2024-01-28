@@ -1,0 +1,116 @@
+#!/bin/sh
+
+cache()
+{
+	name="/tmp/librune/rtype/$(basename "$1")"
+	if test ! -f "$name"
+	then
+		mkdir -p /tmp/librune/rtype
+		wget -q "$1" -O "$name"
+	fi
+}
+
+cd "${0%/*}/.."
+
+readonly URL1='https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt'
+readonly URL2='https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt'
+
+cache "$URL1" &
+cache "$URL2" &
+wait
+
+props1='
+ASCII_Hex_Digit
+Bidi_Control
+Dash
+Deprecated
+Diacritic
+Extender
+Hex_Digit
+ID_Compat_Math_Continue
+ID_Compat_Math_Start
+Ideographic
+IDS_Binary_Operator
+IDS_Trinary_Operator
+IDS_Unary_Operator
+Join_Control
+Logical_Order_Exception
+Noncharacter_Code_Point
+Pattern_Syntax
+Pattern_White_Space
+Prepended_Concatenation_Mark
+Quotation_Mark
+Radical
+Regional_Indicator
+Sentence_Terminal
+Soft_Dotted
+Terminal_Punctuation
+Unified_Ideograph
+Variation_Selector
+White_Space
+'
+
+props2='
+Alphabetic
+Cased
+Case_Ignorable
+Changes_When_Casefolded
+Changes_When_Casemapped
+Changes_When_Lowercased
+Changes_When_Titlecased
+Changes_When_Uppercased
+Default_Ignorable_Code_Point
+Grapheme_Base
+Grapheme_Extend
+ID_Continue
+ID_Start
+Indic_Conjunct_Break
+Lowercase
+Math
+Uppercase
+XID_Continue
+XID_Start
+'
+# InCB
+
+{
+	for prop in $props1
+	do
+		lprop=$(echo $prop | tr A-Z a-z)
+
+		printf 'rune_has_prop_%s…' $lprop >&2
+
+		gawk -M -v prop=$prop -f gen/rtype-prop.awk \
+			/tmp/librune/rtype/PropList.txt \
+			>lib/rtype/rune_has_prop_$lprop.c
+
+		echo "[[unsequenced]] bool rune_has_prop_$lprop(rune);"
+		echo ' DONE' >&2
+	done
+
+	for prop in $props2
+	do
+		lprop=$(echo $prop | tr A-Z a-z)
+
+		printf 'rune_has_prop_%s…' $lprop >&2
+
+		gawk -M -v prop=$prop -f gen/rtype-prop.awk \
+			/tmp/librune/rtype/DerivedCoreProperties.txt \
+			>lib/rtype/rune_has_prop_$lprop.c
+
+		echo "[[unsequenced]] bool rune_has_prop_$lprop(rune);"
+		echo ' DONE' >&2
+	done
+} | gawk '
+	/PROP PREDICATES END/ { no = 0 }
+	FILENAME != "-" && !no { print }
+	FILENAME == "-" { funcs[++i] = $0 }
+
+	/PROP PREDICATES START/ {
+		no = 1
+		asort(funcs)
+		for (i = 1; i <= length(funcs); i++)
+			print funcs[i]
+	}
+' - include/rtype.h \
+| sponge include/rtype.h

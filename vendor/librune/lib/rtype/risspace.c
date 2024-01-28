@@ -2,8 +2,7 @@
 
 #include "internal/common.h"
 
-/* TODO: Make constexpr */
-static const bool latin1_space_tbl[LATIN1_MAX + 1] = {
+static constexpr bool latin1_space_tbl[LATIN1_MAX + 1] = {
 	['\t'] = true, ['\n'] = true, ['\v'] = true, ['\f'] = true,
 	['\r'] = true, [' '] = true,  [0x85] = true, [0xA0] = true,
 };

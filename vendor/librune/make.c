@@ -1,6 +1,8 @@
+#define _GNU_SOURCE
 #include <errno.h>
 #include <glob.h>
 #include <libgen.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,10 +32,12 @@
 
 #define streq(a, b) (!strcmp(a, b))
 
+#define flagset(o) (flags & (1 << ((o) - 'a')))
+
 static void work(void *);
 static int globerr(const char *, int);
 
-static bool lflag, rflag;
+static uint32_t flags;
 
 int
 main(int argc, char **argv)
@@ -43,17 +47,13 @@ main(int argc, char **argv)
 	cbsinit(argc, argv);
 	rebuild();
 
-	while ((opt = getopt(argc, argv, "lr")) != -1) {
+	while ((opt = getopt(argc, argv, "flr")) != -1) {
 		switch (opt) {
-		case 'l':
-			lflag = true;
-			break;
-		case 'r':
-			rflag = true;
-			break;
-		default:
-			fprintf(stderr, "Usage: %s [-lr]\n", *argv);
+		case '?':
+			fprintf(stderr, "Usage: %s [-flr]\n", *argv);
 			exit(EXIT_FAILURE);
+		default:
+			flags |= 1 << (opt - 'a');
 		}
 	}
 
@@ -93,7 +93,9 @@ main(int argc, char **argv)
 		for (size_t i = 0; i < g.gl_pathc; i++)
 			g.gl_pathv[i][strlen(g.gl_pathv[i]) - 1] = 'o';
 
-		if (foutdatedv("librune.a", (const char **)g.gl_pathv, g.gl_pathc)) {
+		if (flagset('f')
+		    || foutdatedv("librune.a", (const char **)g.gl_pathv, g.gl_pathc))
+		{
 			cmdadd(&c, "ar", "rcs", "librune.a");
 			cmdaddv(&c, g.gl_pathv, g.gl_pathc);
 			cmdprc(c);
@@ -116,14 +118,14 @@ work(void *p)
 		die("strdup");
 	dst[strlen(dst) - 1] = 'o';
 
-	if (foutdated(dst, src)) {
+	if (flagset('f') || foutdated(dst, src)) {
 		env_or_default(&sv, "CC", CC);
-		if (rflag)
+		if (flagset('r'))
 			env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
 		else
 			env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
 		cmdaddv(&c, sv.buf, sv.len);
-		if (lflag)
+		if (flagset('l'))
 			cmdadd(&c, "-flto");
 		cmdadd(&c, "-Iinclude", "-fPIC", "-o", dst, "-c", src);
 		cmdprc(c);
