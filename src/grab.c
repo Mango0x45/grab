@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <locale.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +32,9 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define FLAGMSK(f) ((uint64_t)1 << ((f) - ((f) < 'a' ? 'A' : 'G')))
+#define FLAGSET(f) (flags & FLAGMSK(f))
 
 #define lengthof(a) (sizeof(a) / sizeof(*(a)))
 
@@ -100,8 +104,7 @@ static char *env_or_default(const char *, const char *);
 
 static int filecnt, rv;
 static bool got_match;
-static bool bflag, cflag, nflag, iflag, sflag, Uflag, zflag;
-static bool fflag = GIT_GRAB;
+static uint64_t flags = FLAGMSK('f') * GIT_GRAB;
 static put_func *putf;
 
 static struct {
@@ -114,7 +117,7 @@ static cmd_func *op_table[UCHAR_MAX] = {
 	['H'] = cmdH, ['x'] = cmdx, ['X'] = cmdX,
 };
 
-static void
+[[noreturn]] static void
 usage(const char *s)
 {
 	fprintf(stderr,
@@ -166,58 +169,34 @@ main(int argc, char **argv)
 
 	while ((opt = getopt_long(argc, argv, opts, longopts, nullptr)) != -1) {
 		switch (opt) {
-		case 'b':
-			bflag = true;
-			break;
-		case 'c':
-			cflag = true;
-			break;
-#if !GIT_GRAB
-		case 'f':
-			fflag = true;
-			break;
-#endif
-		case 'i':
-			iflag = true;
-			break;
-		case 'n':
-			nflag = true;
-			break;
-		case 's':
-			sflag = true;
-			break;
-		case 'U':
-#if GRAB_DO_PCRE
-			Uflag = true;
-			break;
-#else
-			errx(2, "program not built with PCRE support");
-#endif
-		case 'z':
-			zflag = true;
-			break;
+		case '?':
+			usage(argv[0]);
 		case 'h':
 			execlp("man", "man", "1", argv[0], nullptr);
 			die("execlp: man 1 %s", argv[0]);
+#if !GRAB_DO_PCRE
+		case 'U':
+			errx(2, "program not built with PCRE support");
+#endif
 		default:
-			usage(argv[0]);
+			flags |= FLAGMSK(opt);
 		}
 	}
 
-	if (sflag && zflag)
+	if (FLAGSET('s') && FLAGSET('z'))
 		usage(argv[0]);
 
 	argc -= optind;
 	argv += optind;
 	filecnt = argc - 1;
 
-	if (!cflag && isatty(STDOUT_FILENO) == 1
+	if (!FLAGSET('c') && isatty(STDOUT_FILENO) == 1
 	    && !env_or_default("NO_COLOR", nullptr))
 	{
-		cflag = !streq(env_or_default("TERM", ""), "dumb");
+		flags |= FLAGMSK('c') * !streq(env_or_default("TERM", ""), "dumb");
 	}
 
-	putf = cflag ? putm : putm_nc;
+	putf = FLAGSET('c') ? putm : putm_nc;
 	ops = comppat(argv[0]);
 
 #if GIT_GRAB
@@ -601,7 +580,7 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 
 	got_match = true;
 
-	if (cflag && !fn) {
+	if (FLAGSET('c') && !fn) {
 		char *optstr;
 		if ((optstr = env_or_default("GRAB_COLORS", nullptr))) {
 			enum {
@@ -655,13 +634,13 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 			se = DEFCOL_SE;
 	}
 
-	if (fflag || filecnt > 1) {
-		char sep = zflag ? '\0' : ':';
+	if (FLAGSET('f') || filecnt > 1) {
+		char sep = FLAGSET('z') ? '\0' : ':';
 		printf("\33[%sm%s\33[0m"  /* filename */
 		       "\33[%sm%c\33[0m", /* separator */
 		       fn, filename, se, sep);
 
-		if (bflag) {
+		if (FLAGSET('b')) {
 			printf("\33[%sm%td\33[0m" /* byte offset */
 			       "\33[%sm%c\33[0m", /* separator */
 			       ln, sv.p - pos.bp, se, sep);
@@ -740,8 +719,8 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 	}
 	fwrite(p, 1, sv.p + sv.len - p, stdout);
 
-	if (!(sflag && sv.p[sv.len - 1] == '\n'))
-		putchar(zflag ? '\0' : '\n');
+	if (!(FLAGSET('s') && sv.p[sv.len - 1] == '\n'))
+		putchar(FLAGSET('z') ? '\0' : '\n');
 	free(valid.buf);
 }
 
@@ -752,11 +731,11 @@ putm_nc(struct sv sv, struct matches *ms, const char *filename)
 
 	got_match = true;
 
-	if (fflag || filecnt > 1) {
-		char sep = zflag ? '\0' : ':';
+	if (FLAGSET('f') || filecnt > 1) {
+		char sep = FLAGSET('z') ? '\0' : ':';
 		printf("%s%c", filename, sep);
 
-		if (bflag)
+		if (FLAGSET('b'))
 			printf("%td%c", sv.p - pos.bp, sep);
 		else {
 			struct u8view v;
@@ -774,8 +753,8 @@ putm_nc(struct sv sv, struct matches *ms, const char *filename)
 		}
 	}
 	fwrite(sv.p, 1, sv.len, stdout);
-	if (!(sflag && sv.p[sv.len - 1] == '\n'))
-		putchar(zflag ? '\0' : '\n');
+	if (!(FLAGSET('s') && sv.p[sv.len - 1] == '\n'))
+		putchar(FLAGSET('z') ? '\0' : '\n');
 }
 
 bool
@@ -805,10 +784,10 @@ mkregex(char8_t *s, size_t n)
 	char8_t c = s[n];
 
 	s[n] = 0;
-	cflags = REG_EXTENDED | REG_UTF | (nflag ? REG_NEWLINE : REG_DOTALL);
-	if (iflag)
+	cflags = REG_EXTENDED | REG_UTF | (FLAGSET('n') ? REG_NEWLINE : REG_DOTALL);
+	if (FLAGSET('i'))
 		cflags |= REG_ICASE;
-	if (!Uflag)
+	if (!FLAGSET('U'))
 		cflags |= REG_UCP;
 	if (ret = regcomp(&r, s, cflags)) {
 		char emsg[256];
