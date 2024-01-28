@@ -34,12 +34,17 @@
 
 #define lengthof(a) (sizeof(a) / sizeof(*(a)))
 
-#define die(...)  err(EXIT_FAILURE, __VA_ARGS__)
-#define diex(...) errx(EXIT_FAILURE, __VA_ARGS__)
+#define die(...)  err(3, __VA_ARGS__)
+#define diex(...) errx(3, __VA_ARGS__)
 #define warn(...) \
 	do { \
 		warn(__VA_ARGS__); \
-		rv = EXIT_FAILURE; \
+		rv = 3; \
+	} while (0)
+#define warnx(...) \
+	do { \
+		warnx(__VA_ARGS__); \
+		rv = 3; \
 	} while (0)
 
 #define streq(a, b)    (!strcmp(a, b))
@@ -636,7 +641,6 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 					break;
 				default:
 					warnx("invalid color value -- '%s'", val);
-					rv = EXIT_FAILURE;
 				}
 			}
 		}
