@@ -1,6 +1,6 @@
 .Dd 26 January, 2024
 .Dt GRAB 1
-.Os Grab 2.2.1
+.Os Grab 2.2.2
 .Sh NAME
 .Nm grab ,
 .Nm "git grab"
@@ -287,7 +287,24 @@ even when the
 option is provided.
 .El
 .Sh EXIT STATUS
-.Ex -std
+The
+.Nm
+utility exits with one of the following values:
+.Pp
+.Bl -tag -width Ds -offset indent -compact
+.It Li 0
+One or more matches were selected.
+.It Li 1
+No matches were selected.
+.It Li 2
+The
+.Fl U
+option was passed but
+.Nm
+wasn’t built with PCRE support.
+.It Li >2
+An error occured.
+.El
 .Sh EXAMPLES
 List all your systems CPU flags, sorted and without duplicates:
 .Pp
