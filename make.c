@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,9 +33,12 @@
 		cmdclr(&c); \
 	} while (0)
 
+#define FLAGMSK(f) ((uint64_t)1 << ((f) - ((f) < 'a' ? 'A' : 'G')))
+#define FLAGSET(f) (flags & FLAGMSK(f))
+
 static char *mkoutpath(const char *);
 
-static bool lflag, Pflag, rflag;
+static uint64_t flags;
 
 int
 main(int argc, char **argv)
@@ -42,6 +46,7 @@ main(int argc, char **argv)
 	int opt;
 	cmd_t c = {0};
 	struct option longopts[] = {
+		{"force",   no_argument, nullptr, 'f'},
 		{"lto",     no_argument, nullptr, 'l'},
 		{"no-pcre", no_argument, nullptr, 'P'},
 		{"release", no_argument, nullptr, 'r'},
@@ -51,20 +56,13 @@ main(int argc, char **argv)
 	cbsinit(argc, argv);
 	rebuild();
 
-	while ((opt = getopt_long(argc, argv, "lPr", longopts, nullptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "flPr", longopts, nullptr)) != -1) {
 		switch (opt) {
-		case 'l':
-			lflag = true;
-			break;
-		case 'P':
-			Pflag = true;
-			break;
-		case 'r':
-			rflag = true;
-			break;
-		default:
-			fputs("Usage: make [-lPd]\n", stderr);
+		case '?':
+			fputs("Usage: make [-flPd]\n", stderr);
 			exit(EXIT_FAILURE);
+		default:
+			flags |= FLAGMSK(opt);
 		}
 	}
 
@@ -91,26 +89,31 @@ main(int argc, char **argv)
 		cmd_t c = {0};
 		struct strv sv = {0};
 
-		if (foutdated("vendor/librune/make", "vendor/librune/make.c")) {
+		if (FLAGSET('f')
+		    || foutdated("vendor/librune/make", "vendor/librune/make.c"))
+		{
 			cmdadd(&c, CC, "-lpthread", "-o", "vendor/librune/make",
 			       "vendor/librune/make.c");
 			CMDPRC(c);
 		}
 
-		if (!fexists("vendor/librune/librune.a")) {
+		if (FLAGSET('f') || !fexists("vendor/librune/librune.a")) {
 			cmdadd(&c, "vendor/librune/make");
-			if (rflag)
+			if (FLAGSET('f'))
+				cmdadd(&c, "-f");
+			if (FLAGSET('r'))
 				cmdadd(&c, "-r");
-			if (lflag)
+			if (FLAGSET('l'))
 				cmdadd(&c, "-l");
 			CMDPRC(c);
 		}
 
-		if (foutdated("./grab", "src/grab.c", "src/da.h",
-		              "vendor/librune/librune.a"))
+		if (FLAGSET('f')
+		    || foutdated("./grab", "src/grab.c", "src/da.h",
+		                 "vendor/librune/librune.a"))
 		{
 			env_or_default(&sv, "CC", CC);
-			if (rflag)
+			if (FLAGSET('r'))
 				env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
 			else
 				env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
@@ -120,13 +123,13 @@ main(int argc, char **argv)
 				buf[sizeof(buf) - 2] = i + '0';
 
 				cmdaddv(&c, sv.buf, sv.len);
-				if (lflag)
+				if (FLAGSET('l'))
 					cmdadd(&c, "-flto");
 #ifdef __GLIBC__
 				cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
 #endif
 				cmdadd(&c, "-Ivendor/librune/include", buf);
-				if (!Pflag) {
+				if (!FLAGSET('P')) {
 					struct strv pc = {0};
 					cmdadd(&c, "-DGRAB_DO_PCRE=1");
 					if (pcquery(&pc, "libpcre2-posix", PKGC_CFLAGS | PKGC_LIBS))
