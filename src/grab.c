@@ -94,6 +94,7 @@ static int svposcmp(const void *, const void *);
 static char *env_or_default(const char *, const char *);
 
 static int filecnt, rv;
+static bool got_match;
 static bool bflag, cflag, nflag, iflag, sflag, Uflag, zflag;
 static bool fflag = GIT_GRAB;
 static put_func *putf;
@@ -260,7 +261,7 @@ main(int argc, char **argv)
 	free(ops.buf);
 #endif
 
-	return rv;
+	return got_match ? rv : EXIT_FAILURE;
 }
 
 struct ops
@@ -593,6 +594,8 @@ putm(struct sv sv, struct matches *ms, const char *filename)
 	struct matches valid;
 	static const char *fn, *hl, *ln, *se;
 
+	got_match = true;
+
 	if (cflag && !fn) {
 		char *optstr;
 		if ((optstr = env_or_default("GRAB_COLORS", nullptr))) {
@@ -742,6 +745,8 @@ void
 putm_nc(struct sv sv, struct matches *ms, const char *filename)
 {
 	(void)ms;
+
+	got_match = true;
 
 	if (fflag || filecnt > 1) {
 		char sep = zflag ? '\0' : ':';
