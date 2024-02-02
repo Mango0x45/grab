@@ -1,6 +1,6 @@
-.Dd 26 January, 2024
+.Dd 2 February, 2024
 .Dt GRAB 1
-.Os Grab 2.2.2
+.Os Grab 2.2.3
 .Sh NAME
 .Nm grab ,
 .Nm "git grab"
@@ -24,9 +24,10 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility searches for text in files corresponding to
+utility searches for text matching the given
 .Ar pattern
-and prints the corresponding matches to the standard output.
+in the files listed on the command-line,
+printing the matches to the standard-output.
 Unlike the
 .Xr grep 1
 utility,
@@ -42,12 +43,12 @@ The
 .Nm "git grab"
 utility is identical to the
 .Nm
-utility in all ways except for two exceptions.
+utility in all ways bar two exceptions.
 The first is that if no files
 .Pq globs in this case to be precise
 are specified,
-input is not read from the standard-input but instead all non-binary
-files found in the current git-repository are processed.
+input is not read from the standard-input but instead from all non-binary
+files in the current git-repository.
 If the user provides one or more globs,
 only the non-binary files in the current git-repository that match one or
 more of the given globs will be processed.
@@ -58,18 +59,21 @@ its behavior is always assumed and cannot be disabled.
 .Pp
 .Nm
 will read from the files provided on the command-line.
-If no files are provided, the standard input will be read instead.
+If no files are provided, the standard-input will be read instead.
 The special filename
 .Sq \-
 can also be provided,
-which represents the standard input.
+which represents the standard-input.
 .Pp
 The default behavior of
 .Nm
 is to print pattern matches to the standard-output.
 If more than one file argument is provided,
-matches will be prefixed by their respective filename and a colon.
+matches will be prefixed by their respective filename and the position of
+the match,
+colon-separated.
 Note that this behavior is modified by the
+.Fl b ,
 .Fl f
 and
 .Fl z
