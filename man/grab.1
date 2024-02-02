@@ -308,7 +308,7 @@ An error occured.
 .Sh EXAMPLES
 List all your systems CPU flags, sorted and without duplicates:
 .Pp
-.Dl $ grab 'x/^flags.*/ x/\ew+/ G/flags/' | sort | uniq
+.Dl $ grab -n 'x/^flags.*/ x/\ew+/ G/flags/' /proc/cpuinfo | sort | uniq
 .Pp
 Search for a pattern in multiple files without printing filenames:
 .Pp
