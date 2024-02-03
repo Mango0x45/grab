@@ -1,3 +1,7 @@
+#if __STDC_VERSION__ < 202000L
+#	error "C23 is required to build"
+#endif
+
 #define _GNU_SOURCE
 #include <errno.h>
 #include <getopt.h>
