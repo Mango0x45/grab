@@ -84,6 +84,10 @@ main(int argc, char **argv)
 			man = mkoutpath("/share/man/man1");
 			cmdadd(&c, "mkdir", "-p", bin, man);
 			CMDPRC(c);
+			if (binexists("strip")) {
+				cmdadd(&c, "strip", "--strip-all", "grab", "git-grab");
+				CMDPRC(c);
+			}
 			cmdadd(&c, "cp", "grab", "git-grab", bin);
 			CMDPRC(c);
 			cmdadd(&c, "cp", "man/grab.1", "man/git-grab.1", man);
