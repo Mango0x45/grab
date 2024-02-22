@@ -133,7 +133,7 @@ grab 'x/^flags.*/ x/\w+/ G/flags/' /proc/cpuinfo \
 
 1) Select lines that start with ‘flags’: `x/^flags.*/`
 2) Select all the words: `x/\w+/`
-3) Filter out the word ‘flags’: `v/flags/`
+3) Filter out the word ‘flags’: `G/flags/`
 
 
 ### Find `<my-tag>` tags with the attribute `data-attr` in a Git repo
