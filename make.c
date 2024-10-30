@@ -38,6 +38,9 @@ static char *cflags_req[] = {
 	"-Ivendor/mlib/include",
 	"-pipe",
 	"-std=c23",
+#ifdef __linux__
+	"-D_FILE_OFFSET_BITS=64",
+#endif
 #ifdef __GLIBC__
 	"-D_GNU_SOURCE",
 #endif

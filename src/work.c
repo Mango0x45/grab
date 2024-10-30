@@ -1,6 +1,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdatomic.h>
 #include <stdckdint.h>
 #include <stddef.h>
@@ -68,54 +70,96 @@ extern typeof(pcre2_match) *pcre2_match_fn;
 void
 process_file(const char *locl_filename, unsigned char **locl_buf)
 {
+	ptrdiff_t baselen;
+	static thread_local off_t basecap;
+
 	filename = locl_filename;
 	buf = locl_buf;
 
-	FILE *fp = streq(filename, "-") ? stdin : fopen(filename, "r");
-	if (fp == nullptr) {
-		warn("fopen: %s:", filename);
-		atomic_store(&rv, EXIT_WARNING);
-		return;
+	int fd = streq(filename, "-") ? STDIN_FILENO : open(filename, O_RDONLY);
+	if (fd == -1) {
+		warn("open: %s:", filename);
+		goto err;
 	}
 
-	allocator_t mem = init_heap_allocator(nullptr);
-	if (baseptr == nullptr)
-		baseptr = array_new(mem, char8_t, 0x1000);
-	size_t bufsz = array_cap(baseptr);
-	last_match = baseptr;
+	(void)posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_WILLNEED);
 
-	do {
-		static_assert(sizeof(char8_t) == 1, "sizeof(char8_t) != 1; wtf?");
-		baseptr = array_resz(baseptr, bufsz += BUFSIZ); /* TODO: Bounds checking */
-		size_t n = fread(baseptr + array_len(baseptr), 1, BUFSIZ, fp);
-		array_hdr(baseptr)->len += n;
-	} while (!feof(fp));
+	struct stat st;
+	if (fstat(fd, &st) == -1) {
+		warn("fstat: %s:", filename);
+		goto err;
+	}
 
-	if (ferror(fp)) {
-		warn("fread: %s:", filename);
-		atomic_store(&rv, EXIT_WARNING);
-		goto out;
+	if (S_ISREG(st.st_mode)) {
+#if __linux__
+		(void)readahead(fd, 0, st.st_size);
+#endif
+		if (st.st_size > basecap) {
+			basecap = st.st_size;
+			if ((baseptr = realloc(baseptr, st.st_size)) == nullptr)
+				cerr(EXIT_FATAL, "realloc:");
+		}
+		(void)madvise(baseptr, st.st_size, POSIX_MADV_SEQUENTIAL);
+
+		ptrdiff_t nw = 0;
+		for (;;) {
+			ssize_t nr = read(fd, baseptr + nw, st.st_size - nw);
+			if (nr == -1) {
+				if (errno == EINTR)
+					continue;
+				warn("read: %s:", filename);
+				goto err;
+			}
+			if (nr == 0)
+				break;
+			nw += nr;
+		}
+		baselen = st.st_size;
+	} else {
+		ptrdiff_t nw = 0;
+		for (;;) {
+			if (nw + st.st_blksize > basecap) {
+				if (ckd_mul(&basecap, basecap, 2)) {
+					errno = EOVERFLOW;
+					cerr(EXIT_FATAL, "realloc:");
+				}
+				if ((baseptr = realloc(baseptr, basecap)) == nullptr)
+					cerr(EXIT_FATAL, "realloc:");
+			}
+			ssize_t nr = read(fd, baseptr + nw, st.st_blksize);
+			if (nr == -1) {
+				if (errno == EINTR)
+					continue;
+				warn("read: %s:", filename);
+				goto err;
+			}
+			if (nr == 0)
+				break;
+			nw += nr;
+		}
+		baselen = nw;
 	}
 
 	/* Shouldn’t need more than 32 ever… */
+	allocator_t mem = init_heap_allocator(nullptr);
 	static thread_local u8view_t *hl = nullptr;
 	if (hl == nullptr)
 		hl = array_new(mem, typeof(*hl), 32);
 
-	operator_dispatch(0, (u8view_t){baseptr, array_len(baseptr)}, &hl);
-#if DEBUG
-	array_free(baseptr);
-	baseptr = nullptr;
-	array_free(hl);
-	hl = nullptr;
-#else
-	array_hdr(baseptr)->len = 0;
-	array_hdr(hl)->len = 0;
-#endif
+	operator_dispatch(0, (u8view_t){baseptr, baselen}, &hl);
 
-out:
-	if (fp != stdin)
-		(void)fclose(fp);
+	if (fd != -1)
+		(void)close(fd);
+#if DEBUG
+	free(baseptr);
+	baseptr = nullptr;
+#endif
+	return;
+
+err:
+	if (fd != -1)
+		(void)close(fd);
+	atomic_store(&rv, EXIT_WARNING);
 }
 
 
