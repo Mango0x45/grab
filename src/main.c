@@ -200,7 +200,7 @@ main(int argc, char **argv)
 	array_free(ops);
 #if GIT_GRAB
 	array_foreach (filenames, f)
-		free(f);
+		free((void *)*f);
 	array_free(filenames);
 #endif
 #endif
