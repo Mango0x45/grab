@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdatomic.h>
-#include <stdckdint.h>
+#include <stdbit.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -118,11 +118,10 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 	} else {
 		ptrdiff_t nw = 0;
 		for (;;) {
-			if (nw + st.st_blksize > basecap) {
-				if (ckd_mul(&basecap, basecap, 2)) {
-					errno = EOVERFLOW;
-					cerr(EXIT_FATAL, "realloc:");
-				}
+			ptrdiff_t want = nw + st.st_blksize;
+			if (want > basecap) {
+				/* TODO: Check for overflow (top bit set) */
+				basecap = (ptrdiff_t)stdc_bit_ceil((size_t)want);
 				if ((baseptr = realloc(baseptr, basecap)) == nullptr)
 					cerr(EXIT_FATAL, "realloc:");
 			}
@@ -152,7 +151,9 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 		(void)close(fd);
 #if DEBUG
 	free(baseptr);
+	array_free(hl);
 	baseptr = nullptr;
+	hl = nullptr;
 #endif
 	return;
 
