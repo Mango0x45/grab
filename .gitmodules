@@ -1,0 +1,3 @@
+[submodule "vendor/mlib"]
+	path = vendor/mlib
+	url = git://git.thomasvoss.com/mlib

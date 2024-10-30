@@ -1,185 +1,197 @@
-#if __STDC_VERSION__ < 202000L
-#	error "C23 is required to build"
-#endif
-
 #define _GNU_SOURCE
 #include <errno.h>
-#include <getopt.h>
-#include <limits.h>
+#include <glob.h>
+#include <langinfo.h>
+#include <libgen.h>
+#include <locale.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#if __has_include(<features.h>)
+#	include <features.h>
+#endif
+
 #include "cbs.h"
 
-#define CC "cc"
-#define WARNINGS \
-	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-Wno-parentheses", \
-		"-Wno-pointer-sign", "-Wno-attributes"
-#define CFLAGS_ALL WARNINGS, "-pipe", "-std=c2x"
-#define CFLAGS_DBG CFLAGS_ALL, "-DGRAB_DEBUG", "-Og", "-g", "-ggdb3"
-#ifdef __APPLE__
-#	define CFLAGS_RLS CFLAGS_ALL, "-O3"
-#else
-#	define CFLAGS_RLS CFLAGS_ALL, "-O3", "-march=native", "-mtune=native"
+#define flagset(o) (flags & UINT32_C(1)<<(o)-'a')
+
+[[noreturn, gnu::format(printf, 1, 2)]]
+static void err(const char *, ...);
+static void build_mlib(void);
+
+static uint32_t flags;
+static const char *argv0;
+
+static char *cflags_req[] = {
+	"-Wall",
+	"-Wextra",
+	"-Wpedantic",
+	"-Wvla",
+	"-Wno-attributes",
+	"-Wno-empty-body",          /* Annoying when debugging */
+	"-Wno-pointer-sign",
+	"-Wno-parentheses",
+	"-Ivendor/mlib/include",
+	"-pipe",
+	"-std=c23",
+#ifdef __GLIBC__
+	"-D_GNU_SOURCE",
 #endif
-#define PREFIX "/usr/local"
+	"-DPCRE2_CODE_UNIT_WIDTH=8",
+};
 
-#define streq(a, b) (!strcmp(a, b))
-#define CMDPRC(c) \
-	do { \
-		int ec; \
-		cmdput(c); \
-		if ((ec = cmdexec(c)) != EXIT_SUCCESS) \
-			diex("%s terminated with exit-code %d", *c._argv, ec); \
-		cmdclr(&c); \
-	} while (0)
+static char *cflags_dbg[] = {
+	"-DDEBUG=1",
+	"-fsanitize=address,undefined",
+#if __GNUC__ && __APPLE__
+	"-ggdb2",
+#else
+	"-ggdb3",
+#endif
+	"-O0",
+};
 
-#define FLAGMSK(f) ((uint64_t)1 << ((f) - ((f) < 'a' ? 'A' : 'G')))
-#define FLAGSET(f) (flags & FLAGMSK(f))
-
-static char *mkoutpath(const char *);
-
-static uint64_t flags;
+static char *cflags_rls[] = {
+	"-DNDEBUG=1",
+	"-flto",
+#ifdef __APPLE__
+	"-mcpu=native",
+#else
+	"-march=native",
+	"-mtune=native",
+#endif
+	"-O3",
+};
 
 int
 main(int argc, char **argv)
 {
-	int opt;
-	cmd_t c = {0};
-	struct option longopts[] = {
-		{"force",   no_argument, nullptr, 'f'},
-		{"lto",     no_argument, nullptr, 'l'},
-		{"no-pcre", no_argument, nullptr, 'P'},
-		{"release", no_argument, nullptr, 'r'},
-		{nullptr,   0,           nullptr, 0  },
-	};
-
 	cbsinit(argc, argv);
 	rebuild();
+	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "flPr", longopts, nullptr)) != -1) {
+	argv0 = basename(argv[0]);
+
+	int opt;
+	while ((opt = getopt(argc, argv, "mr")) != -1) {
 		switch (opt) {
 		case '?':
-			fputs("Usage: make [-flPd]\n", stderr);
+usage:
+			fprintf(stderr,
+				"Usage: %s [-mr]\n"
+				"       %s clean | distclean\n",
+				*argv, *argv);
 			exit(EXIT_FAILURE);
 		default:
-			flags |= FLAGMSK(opt);
+			flags |= UINT32_C(1) << opt-'a';
 		}
 	}
 
 	argc -= optind;
 	argv += optind;
 
-	if (argc > 0) {
-		if (streq(*argv, "clean")) {
-			cmdadd(&c, "find", ".", "-name", "grab", "-or", "-name", "git-grab",
-			       "-or", "-name", "*.[ao]", "-delete");
-			CMDPRC(c);
-		} else if (streq(*argv, "install")) {
-			char *bin, *man;
-			bin = mkoutpath("/bin");
-			man = mkoutpath("/share/man/man1");
-			cmdadd(&c, "mkdir", "-p", bin, man);
-			CMDPRC(c);
-			if (binexists("strip")) {
-				cmdadd(&c, "strip", "--strip-all", "grab", "git-grab");
-				CMDPRC(c);
+	if (argc > 1)
+		goto usage;
+
+	if (argc == 1) {
+		struct strs cmd = {};
+		if (strcmp(argv[0], "clean") == 0) {
+			strspushl(&cmd, "rm", "-f", "grab", "git-grab");
+		} else if (strcmp(argv[0], "distclean") == 0) {
+			strspushl(&cmd, "rm", "-f", "grab", "git-grab", "make");
+			if (fexists("vendor/mlib/make")) {
+				cmdput(cmd);
+				if (cmdexec(cmd) != EXIT_SUCCESS)
+					exit(EXIT_FAILURE);
+				strszero(&cmd);
+				strspushl(&cmd, "vendor/mlib/make", "clean");
 			}
-			cmdadd(&c, "cp", "grab", "git-grab", bin);
-			CMDPRC(c);
-			cmdadd(&c, "cp", "man/grab.1", "man/git-grab.1", man);
-			CMDPRC(c);
-		}
-	} else {
-		cmd_t c = {0};
-		struct strv sv = {0};
-
-		if (FLAGSET('f')
-		    || foutdated("vendor/librune/make", "vendor/librune/make.c"))
-		{
-			cmdadd(&c, CC, "-lpthread", "-o", "vendor/librune/make",
-			       "vendor/librune/make.c");
-			CMDPRC(c);
+		} else {
+			err(strcmp(nl_langinfo(CODESET), "UTF-8") == 0
+				? "invalid subcommand — ‘%s’"
+				: "invalid subcommand -- `%s'",
+				argv[0]);
 		}
 
-		if (FLAGSET('f') || !fexists("vendor/librune/librune.a")) {
-			cmdadd(&c, "vendor/librune/make");
-			if (FLAGSET('f'))
-				cmdadd(&c, "-f");
-			if (FLAGSET('r'))
-				cmdadd(&c, "-r");
-			if (FLAGSET('l'))
-				cmdadd(&c, "-l");
-			CMDPRC(c);
-		}
+		cmdput(cmd);
+		return cmdexec(cmd);
+	}
 
-		if (FLAGSET('f')
-		    || foutdated("./grab", "src/grab.c", "src/da.h",
-		                 "vendor/librune/librune.a"))
-		{
-			env_or_default(&sv, "CC", CC);
-			if (FLAGSET('r'))
-				env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
-			else
-				env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
+	build_mlib();
 
-			for (int i = 0; i < 2; i++) {
-				char buf[] = "-DGIT_GRAB=X";
-				buf[sizeof(buf) - 2] = i + '0';
+	glob_t g;
+	if (glob("src/*.c", 0, nullptr, &g))
+		err("glob:");
 
-				cmdaddv(&c, sv.buf, sv.len);
-				if (FLAGSET('l'))
-					cmdadd(&c, "-flto");
-#ifdef __GLIBC__
-				cmdadd(&c, "-D_POSIX_C_SOURCE=200809L");
-#endif
-				cmdadd(&c, "-Ivendor/librune/include", buf);
-				if (!FLAGSET('P')) {
-					struct strv pc = {0};
-					cmdadd(&c, "-DGRAB_DO_PCRE=1");
-					if (pcquery(&pc, "libpcre2-posix", PKGC_CFLAGS | PKGC_LIBS))
-						cmdaddv(&c, pc.buf, pc.len);
-					else
-						cmdadd(&c, "-lpcre2-posix");
-					strvfree(&pc);
-				}
-				cmdadd(&c, "-o", i == 0 ? "grab" : "git-grab", "src/grab.c",
-				       "vendor/librune/librune.a");
-				CMDPRC(c);
-			}
+	struct strs cmd = {};
+	for (char ch = '0'; ch <= '1'; ch++) {
+		strspushenvl(&cmd, "CC", "cc");
+		strspush(&cmd, cflags_req, lengthof(cflags_req));
+		if (flagset('r'))
+			strspushenv(&cmd, "CFLAGS", cflags_rls, lengthof(cflags_rls));
+		else
+			strspushenv(&cmd, "CFLAGS", cflags_dbg, lengthof(cflags_dbg));
 
-			strvfree(&sv);
-		}
+		char buf[] = "-DGIT_GRAB=X";
+		buf[sizeof(buf) - 2] = ch;
+		strspushl(&cmd, buf);
+
+		if (!pcquery(&cmd, "libpcre2-8", PC_CFLAGS | PC_LIBS))
+			strspushl(&cmd, "-lpcre2-8");
+
+		strspushl(&cmd, "-o", ch == '0' ? "grab" : "git-grab");
+		strspush(&cmd, g.gl_pathv, g.gl_pathc);
+		strspushl(&cmd, "vendor/mlib/libmlib.a");
+		cmdput(cmd);
+		if (cmdexec(cmd) != EXIT_SUCCESS)
+			exit(EXIT_FAILURE);
+
+		strszero(&cmd);
 	}
 
 	return EXIT_SUCCESS;
 }
 
-char *
-mkoutpath(const char *s)
+void
+build_mlib(void)
 {
-	char *p, *buf;
-
-	buf = bufalloc(NULL, PATH_MAX, sizeof(char));
-	buf[0] = 0;
-
-	if (p = getenv("DESTDIR"), p && *p) {
-		if (strlcat(buf, p, PATH_MAX) >= PATH_MAX)
-			goto toolong;
+	struct strs cmd = {};
+	if (flagset('m') || !fexists("vendor/mlib/make")) {
+		strspushenvl(&cmd, "CC", "cc");
+		strspushl(&cmd, "-std=c23", "-o", "vendor/mlib/make", "vendor/mlib/make.c");
+		cmdput(cmd);
+		if (cmdexec(cmd) != EXIT_SUCCESS)
+			exit(EXIT_FAILURE);
+		strszero(&cmd);
 	}
+	strspushl(&cmd, "./vendor/mlib/make");
+	if (flagset('m'))
+		strspushl(&cmd, "-f");
+	if (flagset('r'))
+		strspushl(&cmd, "-r");
+	cmdput(cmd);
+	if (cmdexec(cmd) != EXIT_SUCCESS)
+		exit(EXIT_FAILURE);
+	strsfree(&cmd);
+}
 
-	p = getenv("PREFIX");
-	if (strlcat(buf, p && *p ? p : PREFIX, PATH_MAX) >= PATH_MAX)
-		goto toolong;
-	if (strlcat(buf, s, PATH_MAX) >= PATH_MAX)
-		goto toolong;
-
-	return buf;
-
-toolong:
-	errno = ENAMETOOLONG;
-	die(__func__);
+void
+err(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	int save = errno;
+	flockfile(stderr);
+	fprintf(stderr, "%s: ", argv0);
+	vfprintf(stderr, fmt, ap);
+	if (fmt[strlen(fmt) - 1] == ':')
+		fprintf(stderr, " %s", strerror(save));
+	fputc('\n', stderr);
+	funlockfile(stderr);
+	va_end(ap);
+	exit(EXIT_FAILURE);
 }
