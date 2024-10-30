@@ -314,7 +314,7 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 		array_push(buf, sep);
 		array_extend_sv(buf, COL_RS);
 
-		/* GCC things ‘offset’ can overflow because our offsets have type
+		/* GCC thinks ‘offset’ can overflow because our offsets have type
 		   ptrdiff_t which if negative would have a ‘-’ in the front, but
 		   we know that the match positions can’t be negative so it’s
 		   safe to ignore. */
