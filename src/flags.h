@@ -1,5 +1,5 @@
-#ifndef GRAB2_FLAGS_H
-#define GRAB2_FLAGS_H
+#ifndef GRAB_FLAGS_H
+#define GRAB_FLAGS_H
 
 typedef struct {
 	bool c : 1;
@@ -20,4 +20,4 @@ extern
 #endif
 flags_t flags;
 
-#endif /* !GRAB2_FLAGS_H */
+#endif /* !GRAB_FLAGS_H */
