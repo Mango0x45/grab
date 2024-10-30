@@ -279,13 +279,6 @@ DEFINE_OPERATOR(X)
 
 
 
-static inline bool
-views_overlap(const u8view_t a, const u8view_t b)
-{
-	const char8_t *p = a.p + a.len;
-	return p >= b.p && p <= b.p + b.len;
-}
-
 void
 write_match_to_buffer(u8view_t sv, u8view_t *hl)
 {
@@ -377,23 +370,23 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 	array_extend(&sorted, hl, array_len(hl));
 	qsort(sorted, array_len(sorted), sizeof(*sorted), svposcmp);
 
-	for (ptrdiff_t i = 0, len = array_len(sorted); i < len - 1;) {
-		if (views_overlap(sorted[i], sorted[i + 1])) {
-			sorted[i].len = sorted[i + 1].p + sorted[i + 1].len - sorted[i].p;
-			memmove(hl + i + 1, hl + i + 2, sizeof(*hl) * (len - i - 1));
-			array_hdr(sorted)->len = --len;
-		} else
-			i++;
-	}
-
 	for (ptrdiff_t i = 0, len = array_len(sorted); i < len; i++) {
-		if (i < len - 1 && sorted[i].p == sorted[i + 1].p)
+		ptrdiff_t Δ;
+		u8view_t h = sorted[i];
+
+		if ((Δ = h.p - sv.p) < 0)
+			VSHFT(&h, -Δ);
+		if ((Δ = (h.p + h.len) - (sv.p + sv.len)) > 0)
+			h.len -= Δ;
+		if (h.len <= 0)
 			continue;
-		array_extend(buf, sv.p, sorted[i].p - sv.p);
+
+		array_extend(buf, sv.p, h.p - sv.p);
 		array_extend_sv(buf, COL_HL);
-		array_extend_sv(buf, sorted[i]);
+		array_extend_sv(buf, h);
 		array_extend_sv(buf, COL_RS);
-		ptrdiff_t Δ = sorted[i].p - sv.p + sorted[i].len;
+
+		Δ = h.p - sv.p + h.len;
 		VSHFT(&sv, Δ);
 	}
 	array_extend_sv(buf, sv);
