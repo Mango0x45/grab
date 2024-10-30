@@ -148,13 +148,15 @@ main(int argc, char **argv)
 	size_t len;
 	ssize_t nr;
 	char *file = nullptr;
-	while ((nr = getdelim(&file, &len, 0, fstream)) > 0) {
+	while ((nr = getdelim(&file, &len, 0, fstream)) != -1) {
 		/* TODO: Would an arena improve performance? */
 		const char *s = strdup(file);
 		if (s == nullptr)
 			cerr(EXIT_FATAL, "strdup:");
 		array_push(&filenames, s);
 	}
+	if (ferror(fstream))
+		cerr(EXIT_FATAL, "getdelim:");
 #else
 	if (argc == 1)
 		argv = (static char *[]){"-"};
