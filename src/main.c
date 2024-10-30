@@ -66,7 +66,7 @@ main(int argc, char **argv)
 		{'c', U8C("color"),         CLI_NONE},
 		{'h', U8C("help"),          CLI_NONE},
 		{'i', U8C("ignore-case"),   CLI_NONE},
-		{'l', U8C("line"),          CLI_OPT},
+		{'l', U8C("line"),          CLI_NONE},
 		{'p', U8C("predicate"),     CLI_NONE},
 		{'s', U8C("strip-newline"), CLI_NONE},
 		{'U', U8C("no-unicode"),    CLI_NONE},
