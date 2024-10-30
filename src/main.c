@@ -260,15 +260,14 @@ pattern_comp(u8view_t pat)
 
 		/* Find the right delimeter, which is optional for the last
 		   operator */
-		/* TODO: Change u8view_t.len to ptrdiff_t and use -1 here */
-		u8view_t re = {pat.p, (size_t)-1};
+		u8view_t re = {pat.p, -1};
 		while ((w = ucsnext(&ch, &pat)) != 0) {
 			if (ch == rdelim) {
 				re.len = pat.p - re.p - w;
 				break;
 			}
 		}
-		if (re.len == (size_t)-1)
+		if (re.len == -1)
 			re.len = pat.p - re.p;
 		if (re.len == 0) {
 			if (op.c != 'h') {
