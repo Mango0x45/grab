@@ -75,7 +75,7 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 	if (fp == nullptr) {
 		warn("fopen: %s:", filename);
 		atomic_store(&rv, EXIT_WARNING);
-		goto out;
+		return;
 	}
 
 	allocator_t mem = init_heap_allocator(nullptr);
