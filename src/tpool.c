@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -14,8 +15,6 @@
 
 #include "tpool.h"
 #include "work.h"
-
-#include <stdio.h>
 
 static int nproc(void);
 static void *tpwork(void *);
