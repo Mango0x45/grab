@@ -222,7 +222,7 @@ main(int argc, char **argv)
 		free((void *)*f);
 	array_free(filenames);
 #endif
-#endif
+#endif /* DEBUG */
 	return rv;
 }
 
@@ -394,4 +394,4 @@ getfstream(int globc, char **globv)
 	close(fds[W]);
 	return fdopen(fds[R], "r");
 }
-#endif
+#endif /* GIT_GRAB */
