@@ -57,14 +57,13 @@ main(int argc, char **argv)
 
 	/* TODO: Can we test this in an OpenBSD VM? */
 #if 0 && defined(__OpenBSD__)
-	const char *promises =
 #if GIT_GRAB
-		"stdio rpath prot exec";
+	if (pledge("stdio rpath prot exec", NULL) == -1)
+		cerr(EXIT_FATAL, "pledge:");
 #else
-		"stdio rpath";
-#endif
 	if (pledge("stdio rpath", NULL) == -1)
 		cerr(EXIT_FATAL, "pledge:");
+#endif
 #endif
 
 	setlocale(LC_ALL, "");
