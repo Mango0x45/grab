@@ -169,6 +169,8 @@ main(int argc, char **argv)
 	}
 	if (ferror(fstream))
 		cerr(EXIT_FATAL, "getdelim:");
+
+	(void)fclose(fstream);
 #else
 	if (argc == 1)
 		argv = (static char *[]){"-"};
@@ -211,6 +213,7 @@ main(int argc, char **argv)
 	}
 	array_free(ops);
 #if GIT_GRAB
+	free(file);
 	array_foreach (filenames, f)
 		free((void *)*f);
 	array_free(filenames);
