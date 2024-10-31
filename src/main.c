@@ -307,14 +307,47 @@ pattern_comp(u8view_t pat)
 #if DEBUG
 			op.free_me = false;
 #endif
+			if (ucsnext(&ch, &pat) != 0 && !uprop_is_pat_ws(ch))
+				cerr(EXIT_FATAL, "Cannot pass flags to empty regex");
 		} else {
-			int ec;
-			size_t eoff;
-			uint32_t reopts = PCRE2_DOTALL | PCRE2_MATCH_INVALID_UTF | PCRE2_UTF;
+			u8view_t g;
+			uint32_t reopts = PCRE2_DOTALL | PCRE2_MATCH_INVALID_UTF
+							  | PCRE2_UTF;
 			if (flags.i)
 				reopts |= PCRE2_CASELESS;
 			if (!flags.U)
 				reopts |= PCRE2_UCP;
+
+			for (;;) {
+				if (ucsgnext(&g, &pat) == 0)
+					break;
+				if (g.len != 1)
+					goto bad_flag;
+				if (uprop_is_pat_ws(*g.p))
+					break;
+
+				switch (*g.p) {
+				case 'i': reopts |=  PCRE2_CASELESS; break;
+				case 'I': reopts &= ~PCRE2_CASELESS; break;
+				case 'l': reopts |=  PCRE2_LITERAL;  break;
+				case 'L': reopts &= ~PCRE2_LITERAL;  break;
+				case 'u': reopts |=  PCRE2_UCP;      break;
+				case 'U': reopts &= ~PCRE2_UCP;      break;
+				default:
+				bad_flag:
+					cerr(EXIT_FATAL, "Unknown regex flag %s%.*s%s",
+					     lquot, SV_PRI_ARGS(g), rquot);
+				}
+			}
+
+			/* When doing literal matches we need to ensure the following
+               options are disabled, otherwise PCRE2 complains loudly instead of
+               just dealing with it™. */
+			if (reopts & PCRE2_LITERAL)
+				reopts &= ~(PCRE2_DOTALL | PCRE2_UCP);
+
+			int ec;
+			size_t eoff;
 			op.re = pcre2_compile(re.p, re.len, reopts, &ec, &eoff, nullptr);
 			if (op.re == nullptr) {
 				/* TODO: Ensure the buffer is large enough for the error message */
