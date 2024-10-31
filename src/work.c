@@ -199,7 +199,6 @@ DEFINE_OPERATOR(g)
 
 DEFINE_OPERATOR(G)
 {
-	/* TODO: Can we reuse match data? */
 	pcre2_match_data *md =
 		pcre2_match_data_create_from_pattern(ops[opi].re, nullptr);
 	int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
