@@ -78,6 +78,7 @@ main(int argc, char **argv)
 		{'c', U8C("color"),         CLI_NONE},
 		{'h', U8C("help"),          CLI_NONE},
 		{'i', U8C("ignore-case"),   CLI_NONE},
+		{'l', U8C("literal"),       CLI_NONE},
 		{'p', U8C("predicate"),     CLI_NONE},
 		{'s', U8C("strip-newline"), CLI_NONE},
 		{'U', U8C("no-unicode"),    CLI_NONE},
@@ -100,6 +101,9 @@ main(int argc, char **argv)
 			err("execlp: man 1 %s:", mlib_progname());
 		case 'i':
 			flags.i = true;
+			break;
+		case 'l':
+			flags.l = true;
 			break;
 		case 'p':
 			flags.p = true;
@@ -137,7 +141,7 @@ main(int argc, char **argv)
 
 	if (argc == 0) {
 	usage:
-		usage("[-p | -s | -z] [-bciU] pattern [file ...]", "-h");
+		usage("[-p | -s | -z] [-bcilU] pattern [file ...]", "-h");
 		exit(EXIT_FATAL);
 	}
 
@@ -315,6 +319,8 @@ pattern_comp(u8view_t pat)
 							  | PCRE2_UTF;
 			if (flags.i)
 				reopts |= PCRE2_CASELESS;
+			if (flags.l)
+				reopts |= PCRE2_LITERAL;
 			if (!flags.U)
 				reopts |= PCRE2_UCP;
 
