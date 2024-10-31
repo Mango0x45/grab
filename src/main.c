@@ -296,12 +296,12 @@ pattern_comp(u8view_t pat)
 		if (re.len == 0) {
 			if (op.c != 'h') {
 				cerr(EXIT_FATAL, "%s%c%s operator given empty regex",
-					lquot, op.c, rquot);
+				     lquot, op.c, rquot);
 			}
 			if (array_len(ops) == 0) {
 				cerr(EXIT_FATAL,
-					"%sh%s operator given empty regex as the first operator",
-					lquot, rquot);
+				     "%sh%s operator given empty regex as the first operator",
+				     lquot, rquot);
 			}
 			op.re = ops[array_len(ops) - 1].re;
 #if DEBUG
