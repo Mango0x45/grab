@@ -183,7 +183,7 @@ main(int argc, char **argv)
 		argv++;
 		flags.do_header = true;
 	}
-#endif
+#endif /* !GIT_GRAB */
 
 	tpool_t tp;
 	int thrds = tpinit(&tp,
