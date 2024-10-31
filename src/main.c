@@ -171,9 +171,14 @@ main(int argc, char **argv)
 
 	(void)fclose(fstream);
 #else
-	if (argc == 1)
+	if (argc == 1) {
 		argv = (static char *[]){"-"};
-	else {
+	/* TODO: Can we test this in an OpenBSD VM? */
+#if 0 && defined(__OpenBSD__)
+		if (pledge("stdio") == -1)
+			cerr(EXIT_FATAL, "pledge:");
+#endif
+	} else {
 		argc--;
 		argv++;
 		flags.do_header = true;
