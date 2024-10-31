@@ -275,13 +275,18 @@ pattern_comp(u8view_t pat)
 		rune ldelim, rdelim;
 		if ((w = ucsnext(&ldelim, &pat)) == 0)
 			cerr(EXIT_FATAL, "Premature end of pattern");
+		if (ldelim == '\\')
+			cerr(EXIT_FATAL, "Cannot use %s\\%s as a delimeter", lquot, rquot);
 		rdelim = uprop_get_bpb(ldelim);
 
 		/* Find the right delimeter, which is optional for the last
 		   operator */
 		u8view_t re = {pat.p, -1};
 		while ((w = ucsnext(&ch, &pat)) != 0) {
-			if (ch == rdelim) {
+			if (ch == '\\') {
+				if (ucsnext(nullptr, &pat) == 0)
+					cerr(EXIT_FATAL, "Premature end of pattern");
+			} else if (ch == rdelim) {
 				re.len = pat.p - re.p - w;
 				break;
 			}
