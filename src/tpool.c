@@ -116,9 +116,7 @@ tpwork(void *arg)
 		process_file(tp->files[i], &buf);
 	}
 
-	flockfile(stdout);
 	fwrite(buf, 1, array_len(buf), stdout);
-	funlockfile(stdout);
 
 #if DEBUG
 	array_free(buf);
