@@ -82,7 +82,9 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 		goto err;
 	}
 
+#if !defined(__APPLE__) && !defined(__OpenBSD__)
 	(void)posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_WILLNEED);
+#endif
 
 	struct stat st;
 	if (fstat(fd, &st) == -1) {
