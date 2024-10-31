@@ -30,10 +30,14 @@
 	array_extend((xs), (sv).p, (ptrdiff_t)(sv).len)
 
 typedef struct {
-	ptrdiff_t row, col;
-} pos_t;
+	u8view_t buf;
+	struct {
+		ptrdiff_t row;
+		ptrdiff_t col;
+	};
+} pos_state_t;
 
-static pos_t compute_pos(const char8_t *p);
+static void compute_pos(const char8_t *p, pos_state_t *ps);
 static bool islbrk(u8view_t g);
 static int svposcmp(const void *a, const void *b);
 static void write_match_to_buffer(u8view_t sv, u8view_t *hl);
@@ -48,7 +52,6 @@ static DEFINE_OPERATOR(X);
 
 static thread_local const char *filename;
 static thread_local char8_t *baseptr;
-static thread_local const char8_t *last_match;
 static thread_local unsigned char **buf;
 
 static typeof(operator_dispatch) *operators[] = {
@@ -364,10 +367,12 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 
 		int offsetsz;
 		char offset[/* len(INT64_MAX - 1) */ 19];
-		if (flags.l) {
-			pos_t p = compute_pos(sv.p);
+		pos_state_t ps = {.buf = {baseptr, PTRDIFF_MAX}};
 
-			offsetsz = sprintf(offset, "%td", p.row + 1);
+		if (flags.l) {
+			compute_pos(sv.p, &ps);
+
+			offsetsz = sprintf(offset, "%td", ps.row + 1);
 			array_extend_sv(buf, COL_LN);
 			array_extend(buf, offset, offsetsz);
 			array_extend_sv(buf, COL_RS);
@@ -376,7 +381,7 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 			array_push(buf, sep);
 			array_extend_sv(buf, COL_RS);
 
-			offsetsz = sprintf(offset, "%td", p.col + 1);
+			offsetsz = sprintf(offset, "%td", ps.col + 1);
 			array_extend_sv(buf, COL_LN);
 			array_extend(buf, offset, offsetsz);
 			array_extend_sv(buf, COL_RS);
@@ -453,23 +458,18 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 	}
 }
 
-pos_t
-compute_pos(const char8_t *ptr)
+void
+compute_pos(const char8_t *p, pos_state_t *ps)
 {
-	static thread_local pos_t p;
-	if (last_match == baseptr)
-		p.row = p.col = 0;
-	u8view_t g, sv = {last_match, PTRDIFF_MAX};
-	while (sv.p < ptr) {
-		ucsgnext(&g, &sv);
+	u8view_t g;
+	while (ps->buf.p < p) {
+		ucsgnext(&g, &ps->buf);
 		if (islbrk(g)) {
-			p.row++;
-			p.col = 0;
+			ps->row++;
+			ps->col = 0;
 		} else
-			p.col = ucswdth(g, p.col, 8);  /* TODO: Configurable tabsize? */
+			ps->col = ucswdth(g, ps->col, 8);  /* TODO: Configurable tabsize? */
 	}
-	last_match = sv.p;
-	return p;
 }
 
 bool
