@@ -54,8 +54,20 @@ int
 main(int argc, char **argv)
 {
 	mlib_setprogname(argv[0]);
-	setlocale(LC_ALL, "");
 
+	/* TODO: Can we test this in an OpenBSD VM? */
+#if 0 && defined(__OpenBSD__)
+	const char *promises =
+#if GIT_GRAB
+		"stdio rpath prot exec";
+#else
+		"stdio rpath";
+#endif
+	if (pledge("stdio rpath", NULL) == -1)
+		cerr(EXIT_FATAL, "pledge:");
+#endif
+
+	setlocale(LC_ALL, "");
 	if (streq(nl_langinfo(CODESET), "UTF-8")) {
 		lquot = u8"‘";
 		rquot = u8"’";
@@ -367,6 +379,11 @@ getfstream(int globc, char **globv)
 		cerr(EXIT_FATAL, "execvp: git grep -Ilz '':");
 	}
 
+	/* TODO: Can we test this in an OpenBSD VM? */
+#if 0 && defined(__OpenBSD__)
+	if (pledge("stdio rpath") == -1)
+		cerr(EXIT_FATAL, "pledge:");
+#endif
 	close(fds[W]);
 	return fdopen(fds[R], "r");
 }
