@@ -126,7 +126,7 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 		for (;;) {
 			ptrdiff_t want = nw + st.st_blksize;
 			if (want > basecap) {
-				if (want & ((ptrdiff_t)1 << (PTRDIFF_WIDTH - 1))) {
+				if (want & ((ptrdiff_t)1 << (PTRDIFF_WIDTH - 2))) {
 					errno = EOVERFLOW;
 					cerr(EXIT_FATAL, "%s:", __func__);
 				}
