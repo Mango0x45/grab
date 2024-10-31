@@ -125,7 +125,10 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 		for (;;) {
 			ptrdiff_t want = nw + st.st_blksize;
 			if (want > basecap) {
-				/* TODO: Check for overflow (top bit set) */
+				if (want & (1 << (PTRDIFF_WIDTH - 1))) {
+					errno = EOVERFLOW;
+					cerr(EXIT_FATAL, "%s:", __func__);
+				}
 				basecap = (ptrdiff_t)stdc_bit_ceil((size_t)want);
 				if ((baseptr = realloc(baseptr, basecap)) == nullptr)
 					cerr(EXIT_FATAL, "realloc:");
