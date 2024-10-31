@@ -21,7 +21,7 @@
 #include <unicode/string.h>
 
 #include "exitcodes.h"
-#include "flags.h"
+#include "globals.h"
 #include "util.h"
 #include "work.h"
 
@@ -63,11 +63,6 @@ static typeof(operator_dispatch) *operators[] = {
 	['x'] = operator_x,
 	['X'] = operator_X,
 };
-
-extern atomic_int rv;
-extern op_t *ops;
-extern bool cflag;
-extern typeof(pcre2_match) *pcre2_match_fn;
 
 
 
@@ -454,7 +449,7 @@ compute_pos(const char8_t *p, pos_state_t *ps)
 			ps->row++;
 			ps->col = 0;
 		} else
-			ps->col = ucswdth(g, ps->col, 8);  /* TODO: Configurable tabsize? */
+			ps->col = ucswdth(g, ps->col, grab_tabsize);
 	}
 }
 

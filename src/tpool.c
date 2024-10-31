@@ -13,7 +13,9 @@
 #include <errors.h>
 #include <macros.h>
 
+#include "globals.h"
 #include "tpool.h"
+#include "util.h"
 #include "work.h"
 
 static int nproc(void);
@@ -21,37 +23,12 @@ static void *tpwork(void *);
 
 static pthread_t thread_buffer[32];
 
-extern const char *lquot, *rquot;
-
 int
 nproc(void)
 {
-	errno = 0;
-
-	/* Grab the number of processors available on the users system.  If we can
-	   we query sysconf() but fallback to 1 for systems that don’t support the
-	   sysconf() method.  The user can also override this via the GRAB_NPROCS
-	   environment variable, and if that’s invalid then we just issue a
-	   diagnostic and default to 1.
-
-	   We don’t want to error on an invalid value for GRAB_NPROCS because we
-       might be running this tool as part of an editor plugin for example where
-       finding the root cause of your regexp-search failing may not be so
-       trivial. */
-
-	const char *ev = getenv("GRAB_NPROCS");
-	if (ev != nullptr && *ev != 0) {
-		const char *endptr;
-		long n = strtol(ev, (char **)&endptr, 10);
-		if (errno == 0 && *endptr == 0)
-			return (int)n;
-		if (errno != 0)
-			warn("strtol: %s:", ev);
-		if (*endptr != 0)
-			warn("Invalid value for %s%s%s for GRAB_NPROCS", lquot, ev, rquot);
-		return 1;
-	}
-
+	int np = getenv_posnum("GRAB_NPROCS", -1);
+	if (np != -1)
+		return np;
 #ifdef _SC_NPROCESSORS_ONLN
 	return (int)sysconf(_SC_NPROCESSORS_ONLN);
 #else

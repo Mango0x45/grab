@@ -23,22 +23,13 @@
 #include "work.h"
 
 #define MAIN_C 1
-#include "flags.h"
+#include "globals.h"
 
 static bool use_color_p(void);
 static op_t *pattern_comp(u8view_t pat);
 #if GIT_GRAB
 static FILE *getfstream(int globc, char **globv);
 #endif
-
-atomic_int rv = EXIT_NOMATCH;
-op_t *ops;
-/* For use in diagnostic messages */
-const char *lquot = "`", *rquot = "'";
-
-/* We need to use different matching functions depending on if we’re using JIT
-   matching or not */
-typeof(pcre2_match) *pcre2_match_fn;
 
 /* TODO: Use the LUT in work.c */
 static const bool opchars[] = {
@@ -71,6 +62,8 @@ main(int argc, char **argv)
 		lquot = u8"‘";
 		rquot = u8"’";
 	}
+
+	grab_tabsize = getenv_posnum("GRAB_TABSIZE", 8);
 
 	optparser_t parser = mkoptparser(argv);
 	static const cli_opt_t opts[] = {

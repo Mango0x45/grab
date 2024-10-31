@@ -1,10 +1,12 @@
 #include <stddef.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <errors.h>
 #include <pcre2.h>
 
 #include "exitcodes.h"
+#include "globals.h"
 
 void
 pcre2_bitch_and_die(int ec, const char *fmt)
@@ -21,4 +23,22 @@ pcre2_bitch_and_die(int ec, const char *fmt)
 		} else
 			cerr(EXIT_FATAL, fmt, buf);
 	}
+}
+
+int
+getenv_posnum(const char *ev, int fallback)
+{
+	const char *s = getenv(ev);
+	if (s != nullptr && *s != 0) {
+		const char *endptr;
+		errno = 0;
+		long n = strtol(s, (char **)&endptr, 10);
+		if (errno != 0)
+			warn("strtol: %s:", s);
+		else if (*endptr != 0 || n <= 0)
+			warn("invalid value %s%s%s for %s", lquot, s, rquot, ev);
+		else
+			return (int)n;
+	}
+	return fallback;
 }
