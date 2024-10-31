@@ -155,6 +155,7 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 	free(baseptr);
 	array_free(hl);
 	baseptr = nullptr;
+	basecap = 0;
 	hl = nullptr;
 #endif
 	return;
