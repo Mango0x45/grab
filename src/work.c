@@ -369,7 +369,12 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 		char offset[/* len(INT64_MAX - 1) */ 19];
 		pos_state_t ps = {.buf = {baseptr, PTRDIFF_MAX}};
 
-		if (flags.l) {
+		if (flags.b) {
+			offsetsz = sprintf(offset, "%td", sv.p - baseptr);
+			array_extend_sv(buf, COL_LN);
+			array_extend(buf, offset, offsetsz);
+			array_extend_sv(buf, COL_RS);
+		} else {
 			compute_pos(sv.p, &ps);
 
 			offsetsz = sprintf(offset, "%td", ps.row + 1);
@@ -382,11 +387,6 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 			array_extend_sv(buf, COL_RS);
 
 			offsetsz = sprintf(offset, "%td", ps.col + 1);
-			array_extend_sv(buf, COL_LN);
-			array_extend(buf, offset, offsetsz);
-			array_extend_sv(buf, COL_RS);
-		} else {
-			offsetsz = sprintf(offset, "%td", sv.p - baseptr);
 			array_extend_sv(buf, COL_LN);
 			array_extend(buf, offset, offsetsz);
 			array_extend_sv(buf, COL_RS);

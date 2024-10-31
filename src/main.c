@@ -74,10 +74,10 @@ main(int argc, char **argv)
 
 	optparser_t parser = mkoptparser(argv);
 	static const cli_opt_t opts[] = {
+		{'b', U8C("byte-offset"),   CLI_NONE},
 		{'c', U8C("color"),         CLI_NONE},
 		{'h', U8C("help"),          CLI_NONE},
 		{'i', U8C("ignore-case"),   CLI_NONE},
-		{'l', U8C("line"),          CLI_NONE},
 		{'p', U8C("predicate"),     CLI_NONE},
 		{'s', U8C("strip-newline"), CLI_NONE},
 		{'U', U8C("no-unicode"),    CLI_NONE},
@@ -89,6 +89,9 @@ main(int argc, char **argv)
 		if (opt == 0)
 			break;
 		switch (opt) {
+		case 'b':
+			flags.b = true;
+			break;
 		case 'c':
 			flags.c = true;
 			break;
@@ -97,9 +100,6 @@ main(int argc, char **argv)
 			err("execlp: man 1 %s:", mlib_progname());
 		case 'i':
 			flags.i = true;
-			break;
-		case 'l':
-			flags.l = true;
 			break;
 		case 'p':
 			flags.p = true;
@@ -137,7 +137,7 @@ main(int argc, char **argv)
 
 	if (argc == 0) {
 	usage:
-		usage("[-p | -s | -z] [-cilU] pattern [file ...]", "-h");
+		usage("[-p | -s | -z] [-bciU] pattern [file ...]", "-h");
 		exit(EXIT_FATAL);
 	}
 
