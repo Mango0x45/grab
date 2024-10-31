@@ -19,6 +19,7 @@
 
 #include "exitcodes.h"
 #include "tpool.h"
+#include "util.h"
 #include "work.h"
 
 #define MAIN_C 1
@@ -39,7 +40,6 @@ const char *lquot = "`", *rquot = "'";
    matching or not */
 typeof(pcre2_match) *pcre2_match_fn;
 
-static char emsg[256]; /* Buffer for PCRE2 error messages */
 /* TODO: Use the LUT in work.c */
 static const bool opchars[] = {
 	['g'] = true,
@@ -355,15 +355,10 @@ pattern_comp(u8view_t pat)
 			int ec;
 			size_t eoff;
 			op.re = pcre2_compile(re.p, re.len, reopts, &ec, &eoff, nullptr);
-			if (op.re == nullptr) {
-				/* TODO: Ensure the buffer is large enough for the error message */
-				(void)pcre2_get_error_message(ec, emsg, sizeof(emsg));
-				cerr(EXIT_FATAL, "Failed to compile regex: %s", emsg);
-			}
+			if (op.re == nullptr)
+				pcre2_bitch_and_die(ec, "failed to compile regex: %s");
 			if ((ec = pcre2_jit_compile(op.re, PCRE2_JIT_COMPLETE)) != 0) {
-				/* TODO: Ensure the buffer is large enough for the error message */
-				(void)pcre2_get_error_message(ec, emsg, sizeof(emsg));
-				warn("Failed to JIT compile regex: %s", emsg);
+				pcre2_bitch_and_die(ec, "failed to JIT compile regex: %s");
 				rv = EXIT_WARNING;
 				pcre2_match_fn = pcre2_match;
 			} else

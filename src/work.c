@@ -22,6 +22,7 @@
 
 #include "exitcodes.h"
 #include "flags.h"
+#include "util.h"
 #include "work.h"
 
 #define DEFINE_OPERATOR(fn) \
@@ -193,13 +194,10 @@ DEFINE_OPERATOR(g)
 	                       md, nullptr);
 	pcre2_match_data_free(md);
 
-	/* This should never happen */
-	if (n == 0)
-		cerr(EXIT_FATAL, "PCRE2 match data too small");
 	if (n == PCRE2_ERROR_NOMATCH)
 		return;
 	if (n < 0)
-		; /* TODO: Handle error */
+		pcre2_bitch_and_die(n, "failed to match regex: %s");
 
 	operator_dispatch(opi + 1, sv, hl);
 }
@@ -213,13 +211,10 @@ DEFINE_OPERATOR(G)
 	                       md, nullptr);
 	pcre2_match_data_free(md);
 
-	/* This should never happen */
-	if (n == 0)
-		cerr(EXIT_FATAL, "PCRE2 match data too small");
 	if (n == PCRE2_ERROR_NOMATCH)
 		operator_dispatch(opi + 1, sv, hl);
 	if (n < 0)
-		; /* TODO: Handle error */
+		pcre2_bitch_and_die(n, "failed to match regex: %s");
 }
 
 DEFINE_OPERATOR(h)
@@ -236,13 +231,10 @@ DEFINE_OPERATOR(h)
 	for (;;) {
 		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0,
 		                       PCRE2_NOTEMPTY, md, nullptr);
-		/* This should never happen */
-		if (n == 0)
-			cerr(EXIT_FATAL, "PCRE2 match data too small");
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			; /* TODO: Handle error */
+			pcre2_bitch_and_die(n, "failed to match regex: %s");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		array_push(hl, ((u8view_t){sv.p + ov[0], ov[1] - ov[0]}));
@@ -267,13 +259,10 @@ DEFINE_OPERATOR(H)
 	for (;;) {
 		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
 		                       md, nullptr);
-		/* This should never happen */
-		if (n == 0)
-			cerr(EXIT_FATAL, "PCRE2 match data too small");
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			; /* TODO: Handle error */
+			pcre2_bitch_and_die(n, "failed to match regex: %s");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		array_push(hl, ((u8view_t){sv.p, ov[0]}));
@@ -291,13 +280,10 @@ DEFINE_OPERATOR(x)
 	for (;;) {
 		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
 		                       md, nullptr);
-		/* This should never happen */
-		if (n == 0)
-			cerr(EXIT_FATAL, "PCRE2 match data too small");
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			; /* TODO: Handle error */
+			pcre2_bitch_and_die(n, "failed to match regex: %s");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		operator_dispatch(opi + 1, (u8view_t){sv.p + ov[0], ov[1] - ov[0]}, hl);
@@ -313,13 +299,10 @@ DEFINE_OPERATOR(X)
 	for (;;) {
 		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
 		                       md, nullptr);
-		/* This should never happen */
-		if (n == 0)
-			cerr(EXIT_FATAL, "PCRE2 match data too small");
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			; /* TODO: Handle error */
+			pcre2_bitch_and_die(n, "failed to match regex: %s");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		if (ov[0] != 0)
