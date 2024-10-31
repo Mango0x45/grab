@@ -31,7 +31,6 @@ static op_t *pattern_comp(u8view_t pat);
 static FILE *getfstream(int globc, char **globv);
 #endif
 
-/* TODO: Use the LUT in work.c */
 static const bool opchars[] = {
 	['g'] = true,
 	['G'] = true,
