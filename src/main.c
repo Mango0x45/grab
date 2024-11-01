@@ -277,19 +277,15 @@ pattern_comp(u8view_t pat)
 
 		/* Find the right delimeter, which is optional for the last
 		   operator */
-		u8view_t re = {pat.p, -1};
+		u8view_t re = {pat.p, 0};
 		while ((w = ucsnext(&ch, &pat)) != 0) {
 			if (ch == '\\') {
 				if (ucsnext(nullptr, &pat) == 0)
 					cerr(EXIT_FATAL, "Premature end of pattern");
-			} else if (ch == rdelim) {
-				re.len = pat.p - re.p - w;
+			} else if (ch == rdelim)
 				break;
-			}
 		}
-		if (re.len == -1)
-			re.len = pat.p - re.p;
-		if (re.len == 0) {
+		if ((re.len = pat.p - re.p - w) == 0) {
 			if (op.c != 'h') {
 				cerr(EXIT_FATAL, "%s%c%s operator given empty regex",
 				     lquot, op.c, rquot);
