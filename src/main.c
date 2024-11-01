@@ -269,7 +269,7 @@ pattern_comp(u8view_t pat)
 		       ｢regex｣ */
 
 		rune ldelim, rdelim;
-		if ((w = ucsnext(&ldelim, &pat)) == 0)
+		if (ucsnext(&ldelim, &pat) == 0)
 			cerr(EXIT_FATAL, "Premature end of pattern");
 		if (ldelim == '\\')
 			cerr(EXIT_FATAL, "Cannot use %s\\%s as a delimeter", lquot, rquot);
