@@ -115,19 +115,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (flags.p && flags.s) {
-		warn("-p and -s are mutually exclusive");
-		goto usage;
-	}
-	if (flags.p && flags.z) {
-		warn("-p and -z are mutually exclusive");
-		goto usage;
-	}
-	if (flags.s && flags.z) {
-		warn("-s and -z are mutually exclusive");
-		goto usage;
-	}
-
 	argc -= parser.optind;
 	argv += parser.optind;
 
