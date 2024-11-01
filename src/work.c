@@ -18,6 +18,7 @@
 #include <macros.h>
 #include <mbstring.h>
 #include <pcre2.h>
+#include <rune.h>
 #include <unicode/string.h>
 
 #include "exitcodes.h"
@@ -39,6 +40,7 @@ typedef struct {
 } pos_state_t;
 
 static void compute_pos(const char8_t *p, pos_state_t *ps);
+static bool has_lbrk_p(u8view_t sv);
 static bool islbrk(u8view_t g);
 static int svposcmp(const void *a, const void *b);
 static void write_match_to_buffer(u8view_t sv, u8view_t *hl);
@@ -375,6 +377,15 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 		array_extend_sv(buf, COL_SE);
 		array_push(buf, sep);
 		array_extend_sv(buf, COL_RS);
+
+		switch (flags.H) {
+		case HDR_ALWAYS:
+			array_push(buf, '\n');
+			break;
+		case HDR_MULTI:
+			if (has_lbrk_p(sv))
+				array_push(buf, '\n');
+		}
 	}
 
 #pragma GCC diagnostic pop
@@ -450,6 +461,25 @@ compute_pos(const char8_t *p, pos_state_t *ps)
 		} else
 			ps->col = ucswdth(g, ps->col, grab_tabsize);
 	}
+}
+
+bool
+has_lbrk_p(u8view_t sv)
+{
+	rune ch;
+	while (ucsnext(&ch, &sv) != 0) {
+		switch (ch) {
+		case '\r':     /* Not *really* a newline, but it can mess with output */
+		case '\n':
+		case '\v':
+		case '\f':
+		case 0x85:
+		case RUNE_C(0x2028):
+		case RUNE_C(0x2029):
+			return true;
+		}
+	}
+	return false;
 }
 
 bool

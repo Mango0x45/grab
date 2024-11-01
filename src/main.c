@@ -69,6 +69,7 @@ main(int argc, char **argv)
 		{'b', U8C("byte-offset"),   CLI_NONE},
 		{'c', U8C("color"),         CLI_NONE},
 		{'h', U8C("help"),          CLI_NONE},
+		{'H', U8C("header-line"),   CLI_REQ},
 		{'i', U8C("ignore-case"),   CLI_NONE},
 		{'l', U8C("literal"),       CLI_NONE},
 		{'L', U8C("line-position"), CLI_NONE},
@@ -95,6 +96,26 @@ main(int argc, char **argv)
 		case 'h':
 			execlp("man", "man", "1", mlib_progname(), nullptr);
 			err("execlp: man 1 %s:", mlib_progname());
+		case 'H':
+			if (ucseq(parser.optarg, U8("never")))
+				flags.H = HDR_NEVER;
+			else if (ucseq(parser.optarg, U8("multi")))
+				flags.H = HDR_MULTI;
+			else if (ucseq(parser.optarg, U8("always")))
+				flags.H = HDR_ALWAYS;
+			else if (parser.optarg.len == 0) {
+				warn("empty value given for option %s--header-line%s",
+				     lquot, rquot);
+				goto usage;
+			} else {
+				warn("unknown value %s%.*s%s for option %s--header-line%s",
+				     lquot, SV_PRI_ARGS(parser.optarg), rquot, lquot, rquot);
+				goto usage;
+			}
+#if !GIT_GRAB
+			flags.do_header = true;
+#endif
+			break;
 		case 'i':
 			flags.i = true;
 			break;
@@ -130,7 +151,7 @@ main(int argc, char **argv)
 
 	if (argc == 0) {
 	usage:
-		usage("[-bcilLpsUz] pattern [file ...]", "-h");
+		usage("[-H never|multi|always] [-bcilLpsUz] pattern [file ...]", "-h");
 		exit(EXIT_FATAL);
 	}
 
