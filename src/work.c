@@ -185,8 +185,8 @@ DEFINE_OPERATOR(g)
 {
 	pcre2_match_data *md =
 		pcre2_match_data_create_from_pattern(ops[opi].re, nullptr);
-	int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
-	                       md, nullptr);
+	int n = pcre2_jit_match(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
+	                        md, nullptr);
 	pcre2_match_data_free(md);
 
 	if (n == PCRE2_ERROR_NOMATCH)
@@ -201,8 +201,8 @@ DEFINE_OPERATOR(G)
 {
 	pcre2_match_data *md =
 		pcre2_match_data_create_from_pattern(ops[opi].re, nullptr);
-	int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
-	                       md, nullptr);
+	int n = pcre2_jit_match(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
+	                        md, nullptr);
 	pcre2_match_data_free(md);
 
 	if (n == PCRE2_ERROR_NOMATCH)
@@ -223,8 +223,8 @@ DEFINE_OPERATOR(h)
 	u8view_t sv_save = sv;
 	ptrdiff_t origlen = array_len(*hl);
 	for (;;) {
-		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0,
-		                       PCRE2_NOTEMPTY, md, nullptr);
+		int n = pcre2_jit_match(ops[opi].re, sv.p, sv.len, 0,
+		                        PCRE2_NOTEMPTY, md, nullptr);
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
@@ -251,8 +251,8 @@ DEFINE_OPERATOR(H)
 	u8view_t sv_save = sv;
 	ptrdiff_t origlen = array_len(*hl);
 	for (;;) {
-		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
-		                       md, nullptr);
+		int n = pcre2_jit_match(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
+		                        md, nullptr);
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
@@ -272,8 +272,8 @@ DEFINE_OPERATOR(x)
 	pcre2_match_data *md =
 		pcre2_match_data_create_from_pattern(ops[opi].re, nullptr);
 	for (;;) {
-		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
-		                       md, nullptr);
+		int n = pcre2_jit_match(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
+		                        md, nullptr);
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
@@ -291,8 +291,8 @@ DEFINE_OPERATOR(X)
 	pcre2_match_data *md =
 		pcre2_match_data_create_from_pattern(ops[opi].re, nullptr);
 	for (;;) {
-		int n = pcre2_match_fn(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
-		                       md, nullptr);
+		int n = pcre2_jit_match(ops[opi].re, sv.p, sv.len, 0, PCRE2_NOTEMPTY,
+		                        md, nullptr);
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)

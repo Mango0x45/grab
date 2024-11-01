@@ -347,12 +347,8 @@ pattern_comp(u8view_t pat)
 				pcre2_bitch_and_die(
 					ec, "failed to compile regex at byte offset %zu: %s", eoff);
 			}
-			if ((ec = pcre2_jit_compile(op.re, PCRE2_JIT_COMPLETE)) != 0) {
+			if ((ec = pcre2_jit_compile(op.re, PCRE2_JIT_COMPLETE)) != 0)
 				pcre2_bitch_and_die(ec, "failed to JIT compile regex: %s");
-				rv = EXIT_WARNING;
-				pcre2_match_fn = pcre2_match;
-			} else
-				pcre2_match_fn = pcre2_jit_match;
 #if DEBUG
 			op.free_me = true;
 #endif

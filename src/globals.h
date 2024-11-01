@@ -39,7 +39,6 @@ typedef struct {
 maybe_extern flags_t flags;
 maybe_extern int grab_tabsize;
 maybe_extern op_t *ops;
-maybe_extern typeof(pcre2_match) *pcre2_match_fn;
 #if MAIN_C
 	atomic_int rv = EXIT_NOMATCH;
 	const char *lquot = "`", *rquot = "'";
