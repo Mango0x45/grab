@@ -45,6 +45,8 @@ tpinit(tpool_t *tp, const char **files, ptrdiff_t filecnt)
 	tp->tcnt = MIN(tp->tcnt, filecnt);
 	tp->wi = 0;
 
+	if (tp->tcnt == 1)
+		return 0;               /* Initiate single-threaded behaviour */
 	if (tp->tcnt <= 32)
 		tp->thrds = thread_buffer;
 	else if ((tp->thrds = malloc(sizeof(*tp->thrds) * tp->tcnt)) == nullptr)
