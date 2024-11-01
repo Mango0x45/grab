@@ -86,7 +86,7 @@ main(int argc, char **argv)
 usage:
 			fprintf(stderr,
 				"Usage: %s [-mr]\n"
-				"       %s clean | distclean\n",
+				"       %s clean | distclean | install\n",
 				*argv, *argv);
 			exit(EXIT_FAILURE);
 		default:
@@ -113,6 +113,8 @@ usage:
 				strszero(&cmd);
 				strspushl(&cmd, "vendor/mlib/make", "clean");
 			}
+		} else if (strcmp(argv[0], "install") == 0) {
+			/* TODO: Add install target */
 		} else {
 			err(strcmp(nl_langinfo(CODESET), "UTF-8") == 0
 				? "invalid subcommand — ‘%s’"
