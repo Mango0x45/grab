@@ -343,8 +343,10 @@ pattern_comp(u8view_t pat)
 			int ec;
 			size_t eoff;
 			op.re = pcre2_compile(re.p, re.len, reopts, &ec, &eoff, nullptr);
-			if (op.re == nullptr)
-				pcre2_bitch_and_die(ec, "failed to compile regex: %s");
+			if (op.re == nullptr) {
+				pcre2_bitch_and_die(
+					ec, "failed to compile regex at byte offset %zu: %s", eoff);
+			}
 			if ((ec = pcre2_jit_compile(op.re, PCRE2_JIT_COMPLETE)) != 0) {
 				pcre2_bitch_and_die(ec, "failed to JIT compile regex: %s");
 				rv = EXIT_WARNING;
