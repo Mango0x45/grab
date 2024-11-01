@@ -71,6 +71,7 @@ main(int argc, char **argv)
 		{'h', U8C("help"),          CLI_NONE},
 		{'i', U8C("ignore-case"),   CLI_NONE},
 		{'l', U8C("literal"),       CLI_NONE},
+		{'L', U8C("line-position"), CLI_NONE},
 		{'p', U8C("predicate"),     CLI_NONE},
 		{'s', U8C("strip-newline"), CLI_NONE},
 		{'U', U8C("no-unicode"),    CLI_NONE},
@@ -84,6 +85,9 @@ main(int argc, char **argv)
 		switch (opt) {
 		case 'b':
 			flags.b = true;
+#if !GIT_GRAB
+			flags.do_header = true;
+#endif
 			break;
 		case 'c':
 			flags.c = true;
@@ -96,6 +100,12 @@ main(int argc, char **argv)
 			break;
 		case 'l':
 			flags.l = true;
+			break;
+		case 'L':
+			flags.b = false;
+#if !GIT_GRAB
+			flags.do_header = true;
+#endif
 			break;
 		case 'p':
 			flags.p = true;
@@ -120,7 +130,7 @@ main(int argc, char **argv)
 
 	if (argc == 0) {
 	usage:
-		usage("[-p | -s | -z] [-bcilU] pattern [file ...]", "-h");
+		usage("[-bcilLpsUz] pattern [file ...]", "-h");
 		exit(EXIT_FATAL);
 	}
 
