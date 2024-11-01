@@ -1,7 +1,9 @@
 *.dSYM/
 .cache/
 .clang-format
+TODO.org
 compile_commands.json
 git-grab
 grab
 make
+out
