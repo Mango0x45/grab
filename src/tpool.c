@@ -13,7 +13,6 @@
 #include <errors.h>
 #include <macros.h>
 
-#include "globals.h"
 #include "tpool.h"
 #include "util.h"
 #include "work.h"
