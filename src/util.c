@@ -1,7 +1,7 @@
+#include <errno.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #include <errors.h>
 #include <pcre2.h>
