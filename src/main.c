@@ -95,7 +95,7 @@ main(int argc, char **argv)
 			break;
 		case 'h':
 			execlp("man", "man", "1", mlib_progname(), nullptr);
-			err("execlp: man 1 %s:", mlib_progname());
+			cerr(EXIT_FATAL, "execlp: man 1 %s:", mlib_progname());
 		case 'H':
 			if (ucseq(parser.optarg, U8("never")))
 				flags.H = HDR_NEVER;
