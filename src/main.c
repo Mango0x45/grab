@@ -330,14 +330,13 @@ pattern_comp(u8view_t pat)
 				reopts |= PCRE2_UCP;
 
 			for (;;) {
-				if (ucsgnext(&g, &pat) == 0)
+				if (ucsgnext(&g, &pat) == 0 || islbrk(g))
 					break;
-				if (g.len != 1)
-					goto bad_flag;
-				if (uprop_is_pat_ws(*g.p))
+				int w = ucsnext(&ch, &g);
+				if (uprop_is_pat_ws(ch))
 					break;
 
-				switch (*g.p) {
+				switch (ch) {
 				case 'i': reopts |=  PCRE2_CASELESS; break;
 				case 'I': reopts &= ~PCRE2_CASELESS; break;
 				case 'l': reopts |=  PCRE2_LITERAL;  break;
@@ -345,7 +344,7 @@ pattern_comp(u8view_t pat)
 				case 'u': reopts |=  PCRE2_UCP;      break;
 				case 'U': reopts &= ~PCRE2_UCP;      break;
 				default:
-				bad_flag:
+					VSHFT(&g, -w);
 					cerr(EXIT_FATAL, "Unknown regex flag %s%.*s%s",
 					     lquot, SV_PRI_ARGS(g), rquot);
 				}

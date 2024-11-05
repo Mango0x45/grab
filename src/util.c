@@ -4,6 +4,8 @@
 #include <stdlib.h>
 
 #include <errors.h>
+#include <macros.h>
+#include <mbstring.h>
 #include <pcre2.h>
 
 #include "exitcodes.h"
@@ -47,4 +49,16 @@ getenv_posnum(const char *ev, int fallback)
 			return (int)n;
 	}
 	return fallback;
+}
+
+bool
+islbrk(u8view_t g)
+{
+	return ucseq(g, U8("\n"))
+	    || ucseq(g, U8("\v"))
+	    || ucseq(g, U8("\f"))
+	    || ucseq(g, U8("\r\n"))
+	    || ucseq(g, U8("\x85"))
+	    || ucseq(g, U8("\u2028"))
+	    || ucseq(g, U8("\u2029"));
 }

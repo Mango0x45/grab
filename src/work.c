@@ -41,7 +41,6 @@ typedef struct {
 
 static void compute_pos(const char8_t *p, pos_state_t *ps);
 static bool has_lbrk_p(u8view_t sv);
-static bool islbrk(u8view_t g);
 static int svposcmp(const void *a, const void *b);
 static void write_match_to_buffer(u8view_t sv, u8view_t *hl);
 
@@ -480,18 +479,6 @@ has_lbrk_p(u8view_t sv)
 		}
 	}
 	return false;
-}
-
-bool
-islbrk(u8view_t g)
-{
-	return ucseq(g, U8("\n"))
-	    || ucseq(g, U8("\v"))
-	    || ucseq(g, U8("\f"))
-	    || ucseq(g, U8("\r\n"))
-	    || ucseq(g, U8("\x85"))
-	    || ucseq(g, U8("\u2028"))
-	    || ucseq(g, U8("\u2029"));
 }
 
 int
