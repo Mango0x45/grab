@@ -188,7 +188,7 @@ main(int argc, char **argv)
 		argv = (static char *[]){"-"};
 	/* TODO: Can we test this in an OpenBSD VM? */
 #if 0 && defined(__OpenBSD__)
-		if (pledge("stdio") == -1)
+		if (pledge("stdio", nullptr) == -1)
 			cerr(EXIT_FATAL, "pledge:");
 #endif
 	} else {
@@ -429,7 +429,7 @@ getfstream(int globc, char **globv)
 
 	/* TODO: Can we test this in an OpenBSD VM? */
 #if 0 && defined(__OpenBSD__)
-	if (pledge("stdio rpath") == -1)
+	if (pledge("stdio rpath", nullptr) == -1)
 		cerr(EXIT_FATAL, "pledge:");
 #endif
 	close(fds[W]);
