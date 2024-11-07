@@ -47,10 +47,10 @@ main(int argc, char **argv)
 	/* TODO: Can we test this in an OpenBSD VM? */
 #if 0 && defined(__OpenBSD__)
 #if GIT_GRAB
-	if (pledge("stdio rpath prot exec", NULL) == -1)
+	if (pledge("stdio rpath prot exec", nullptr) == -1)
 		cerr(EXIT_FATAL, "pledge:");
 #else
-	if (pledge("stdio rpath", NULL) == -1)
+	if (pledge("stdio rpath", nullptr) == -1)
 		cerr(EXIT_FATAL, "pledge:");
 #endif
 #endif
