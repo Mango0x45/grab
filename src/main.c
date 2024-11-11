@@ -321,7 +321,7 @@ pattern_comp(u8view_t pat)
 		} else {
 			u8view_t g;
 			uint32_t reopts = PCRE2_DOTALL | PCRE2_MATCH_INVALID_UTF
-							  | PCRE2_UTF;
+			                | PCRE2_MULTILINE | PCRE2_UTF;
 			if (flags.i)
 				reopts |= PCRE2_CASELESS;
 			if (flags.l)
@@ -354,7 +354,7 @@ pattern_comp(u8view_t pat)
                options are disabled, otherwise PCRE2 complains loudly instead of
                just dealing with it™. */
 			if (reopts & PCRE2_LITERAL)
-				reopts &= ~(PCRE2_DOTALL | PCRE2_UCP);
+				reopts &= ~(PCRE2_DOTALL | PCRE2_MULTILINE | PCRE2_UCP);
 
 			int ec;
 			size_t eoff;
