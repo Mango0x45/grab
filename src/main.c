@@ -320,8 +320,11 @@ pattern_comp(u8view_t pat)
 				cerr(EXIT_FATAL, "Cannot pass flags to empty regex");
 		} else {
 			u8view_t g;
-			uint32_t reopts = PCRE2_DOTALL | PCRE2_MATCH_INVALID_UTF
-			                | PCRE2_MULTILINE | PCRE2_UTF;
+			uint32_t reopts = PCRE2_ALT_CIRCUMFLEX
+			                | PCRE2_DOTALL
+			                | PCRE2_MATCH_INVALID_UTF
+			                | PCRE2_MULTILINE
+			                | PCRE2_UTF;
 			if (flags.i)
 				reopts |= PCRE2_CASELESS;
 			if (flags.l)
@@ -353,8 +356,10 @@ pattern_comp(u8view_t pat)
 			/* When doing literal matches we need to ensure the following
                options are disabled, otherwise PCRE2 complains loudly instead of
                just dealing with it™. */
-			if (reopts & PCRE2_LITERAL)
-				reopts &= ~(PCRE2_DOTALL | PCRE2_MULTILINE | PCRE2_UCP);
+			if (reopts & PCRE2_LITERAL) {
+				reopts &= ~(PCRE2_ALT_CIRCUMFLEX | PCRE2_DOTALL
+				            | PCRE2_MULTILINE | PCRE2_UCP);
+			}
 
 			int ec;
 			size_t eoff;
