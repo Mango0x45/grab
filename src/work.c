@@ -193,7 +193,7 @@ DEFINE_OPERATOR(g)
 	if (n == PCRE2_ERROR_NOMATCH)
 		return;
 	if (n < 0)
-		pcre2_bitch_and_die(n, "failed to match regex: %s");
+		pcre2_bitch_and_die(n, "failed to match regex");
 
 	operator_dispatch(opi + 1, sv, hl);
 }
@@ -209,7 +209,7 @@ DEFINE_OPERATOR(G)
 	if (n == PCRE2_ERROR_NOMATCH)
 		operator_dispatch(opi + 1, sv, hl);
 	if (n < 0)
-		pcre2_bitch_and_die(n, "failed to match regex: %s");
+		pcre2_bitch_and_die(n, "failed to match regex");
 }
 
 DEFINE_OPERATOR(h)
@@ -229,7 +229,7 @@ DEFINE_OPERATOR(h)
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			pcre2_bitch_and_die(n, "failed to match regex: %s");
+			pcre2_bitch_and_die(n, "failed to match regex");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		array_push(hl, ((u8view_t){sv.p + ov[0], ov[1] - ov[0]}));
@@ -257,7 +257,7 @@ DEFINE_OPERATOR(H)
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			pcre2_bitch_and_die(n, "failed to match regex: %s");
+			pcre2_bitch_and_die(n, "failed to match regex");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		array_push(hl, ((u8view_t){sv.p, ov[0]}));
@@ -278,7 +278,7 @@ DEFINE_OPERATOR(x)
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			pcre2_bitch_and_die(n, "failed to match regex: %s");
+			pcre2_bitch_and_die(n, "failed to match regex");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		operator_dispatch(opi + 1, (u8view_t){sv.p + ov[0], ov[1] - ov[0]}, hl);
@@ -297,7 +297,7 @@ DEFINE_OPERATOR(X)
 		if (n == PCRE2_ERROR_NOMATCH)
 			break;
 		if (n < 0)
-			pcre2_bitch_and_die(n, "failed to match regex: %s");
+			pcre2_bitch_and_die(n, "failed to match regex");
 
 		size_t *ov = pcre2_get_ovector_pointer(md);
 		if (ov[0] != 0)

@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <errors.h>
@@ -27,7 +28,10 @@ pcre2_bitch_and_die(int ec, const char *fmt, ...)
 		} else {
 			va_list ap;
 			va_start(ap, fmt);
-			vwarn(fmt, ap);
+			flockfile(stderr);
+			vfprintf(stderr, fmt, ap);
+			fprintf(stderr, ": %s\n", buf);
+			funlockfile(stderr);
 			exit(EXIT_FATAL);
 		}
 	}
