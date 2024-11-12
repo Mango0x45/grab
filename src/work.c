@@ -212,7 +212,7 @@ DEFINE_OPERATOR(G)
 
 	if (n == PCRE2_ERROR_NOMATCH)
 		operator_dispatch(opi + 1, sv, hl);
-	if (n < 0)
+	else if (n < 0)
 		pcre2_bitch_and_die(n, "failed to match regex");
 }
 
