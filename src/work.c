@@ -92,7 +92,11 @@ process_file(const char *locl_filename, unsigned char **locl_buf)
 		goto err;
 	}
 
-	if (S_ISREG(st.st_mode)) {
+	/* We need to assert for st.st_size > 0 as some files (such as various files
+       under /proc on Linux) are generated ‘on the fly’ and will report a
+       filesize of 0.  Despite being regular files, these files need to be
+       treated as if they are special. */
+	if (S_ISREG(st.st_mode) && st.st_size > 0) {
 #if __linux__
 		(void)readahead(fd, 0, st.st_size);
 #endif
