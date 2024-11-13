@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdatomic.h>
@@ -25,6 +26,10 @@
 #include "globals.h"
 #include "util.h"
 #include "work.h"
+
+#ifndef __GNUC__
+	#define __builtin_expect(x, y) (x)
+#endif
 
 #define DEFINE_OPERATOR(fn) \
 	void operator_##fn(ptrdiff_t opi, u8view_t sv, u8view_t **hl)
@@ -457,12 +462,24 @@ compute_pos(const char8_t *p, pos_state_t *ps)
 {
 	u8view_t g;
 	while (ps->buf.p < p) {
-		ucsgnext(&g, &ps->buf);
-		if (islbrk(g)) {
-			ps->row++;
-			ps->col = 0;
-		} else
-			ps->col = ucswdth(g, ps->col, grab_tabsize);
+		unsigned char c = *ps->buf.p;
+		if (__builtin_expect(isascii(c), 1)) { /* ASCII fast path */
+			ps->buf.p++;
+			if (c == '\r' || c == '\n' || c == '\v' || c == '\f') {
+				ps->row++;
+				ps->col = 0;
+			} else if (c == '\t')
+				ps->col += grab_tabsize - ps->col % grab_tabsize;
+			else if (isprint(c))
+				ps->col++;
+		} else {
+			ucsgnext(&g, &ps->buf);
+			if (islbrk(g)) {
+				ps->row++;
+				ps->col = 0;
+			} else
+				ps->col = ucswdth(g, ps->col, grab_tabsize);
+		}
 	}
 }
 
