@@ -17,139 +17,273 @@ $ ./make  # Build the project
 $ ./make install  # Install the project
 ```
 
-By default Grab is linked against the PCRE2 library for PCRE support.  If
-you prefer to simply use POSIX EREs, you can pass `--no-pcre` to the
-build script:
+If you want to build with optimizations enabled, you can pass the `-r`
+flag.
 
 ```sh
-$ ./make --no-pcre
-```
-
-If you want to build with optimizations enabled, you can pass the
-`--release` flag.  You can additionally pass the `--lto` flag to enable
-link-time optimizations:
-
-```sh
-$ ./make --release --lto
+$ ./make -r
 ```
 
 
 ## Description
 
-Grab invocations must include a pattern string which specifies which text
-to match.  A pattern string consists of one or more commands.  A command
-is an operator followed by a delimiter, a regular expression (regex), and
-then terminated by the same delimiter.  The last delimiter of the last
-command is optional.
-
-For example, a pattern string may look like ‘`x/[a-z]+/ g.foo. v/bar/`’.
-
-The available operators are ‘g’, ‘G’, ‘h’, ‘H’, ‘x’, and ‘X’.  The ‘g’
-and ‘G’ operators are filter operators, the ‘h’ and ‘H’ operators are
-highlighting operators, and ‘x’ and ‘X’ are selection operators.
-
-You probably want to begin your pattern with a selection operator.  By
-default the entire contents of the file you’re searching through will be
-selected, but you probably want to shrink that down to a specific query.
-With ‘x’ you can specify what text you want to select in the file.  For
-example ‘`x/[0-9]+/`’ will select all numbers:
-
-```sh
-echo 'foo12bar34baz' | grab 'x/[0-9]+/'
-# ⇒ 12
-# ⇒ 34
 ```
+GRAB(1)                  General Commands Manual                 GRAB(1)
 
-The ‘X’ operator works in reverse, selecting everything that _doesn’t_
-match the given regex:
+NAME
+       grab, git grab — search for patterns in files
 
-```sh
-echo 'foo12bar34baz' | grab 'X/[0-9]+/'
-# ⇒ foo
-# ⇒ bar
-# ⇒ baz
+SYNOPSIS
+       grab [-H never | multi | always] [-bcilLpsUz] pattern [file ...]
+       grab -h
+
+       git  grab  [-H never | multi | always] [-bcilLpsUz] pattern [glob
+            ...]
+       git grab -h
+
+DESCRIPTION
+       The grab utility searches for text matching the given pattern  in
+       the files listed on the command-line, printing the matches to the
+       standard-output.    Unlike  the  grep(1)  utility,  grab  is  not
+       strictly line-oriented; the structure of matches is  left  up  to
+       the  user to define.  For more details on the pattern syntax, see
+       “Pattern Syntax”.
+
+       The git grab utility is identical to the grab utility except that
+       it takes globs matching files as command-line  arguments  instead
+       of  files,  and processes all non-binary files in the current git
+       repository that match the provided globs.  If no globs  are  pro‐
+       vided,  all  non-binary  files  in the current git repository are
+       processed.
+
+       grab will read from the files provided on the  command-line.   If
+       no  files  are provided, the standard-input will be read instead.
+       The special filename ‘-’ can also be provided,  which  represents
+       the standard-input.
+
+       Similar  to  the grep(1) utility matches are printed to the stan‐
+       dard output.  They are additionally prefixed with the name of the
+       file in which pattern was matched, as well as the location of the
+       match.
+
+       The options are as follows:
+
+       -b, --byte-offset
+               Report the positions of pattern  matches  as  the  (zero-
+               based) byte offset of the match from the beginning of the
+               file.
+
+               This option is useful if your text editor (such as vim(1)
+               or  emacs(1))  supports  jumping directly to a given byte
+               offset/position.
+
+               This is the default behaviour if the  -L  option  is  not
+               provided.
+
+       -c, --color
+               Force  colored output, even if the output device is not a
+               TTY.  This is useful when piping the output of grab  into
+               a pager such as less(1).
+
+               This  option  takes precedence over the environment vari‐
+               ables described in “ENVIRONMENT” that relate to the usage
+               of color.
+
+       -h, --help
+               Display help information by opening this manual page.
+
+       -H, --header-line=when
+               Control the usage of a dedicated header line,  where  the
+               filename  and  match  position are printed on a dedicated
+               line above the match.  The  available  options  for  when
+               are:
+
+               never   never use a dedicated header line
+               always  always use a dedicated header line
+               multi   use a dedicated header line when the matched pat‐
+                       tern spans multiple lines
+
+       -i, --ignore-case
+               Match patterns case-insensitively.
+
+       -l, --literal
+               Treat  patterns  as literal strings, i.e. don’t interpret
+               them as regular expressions.
+
+       -L, --line-position
+               Report the positions of matches as  a  (one-based)  line-
+               and column position separated by a colon.
+
+               This  option  may  be  ill-advised in many circumstances.
+               See “BUGS” for more details.
+
+       -p, --predicate
+               Return an exit status indicating if  a  match  was  found
+               without  writing any output to the standard output.  When
+               simply checking for the presence of a pattern in  an  in‐
+               put,  this  option is far more efficient than redirecting
+               output to /dev/null.
+
+       -s, --strip-newline
+               Don’t print a newline at the end of a match if the  match
+               already  ends  in  a  newline.  This can make output seem
+               more ‘natural’, as many matches will already have  termi‐
+               nating newlines.
+
+       -U, --no-unicode
+               Don’t  use  Unicode properties when matching \d, \w, etc.
+               Recognize only ASCII values instead.
+
+       -z, --zero
+               Separate output data by null bytes (‘\0’) instead of new‐
+               lines.  This option can be used to process  matches  con‐
+               taining newlines.
+
+   Pattern Syntax
+       A pattern is a sequence of whitespace-separated commands.  A com‐
+       mand  is a sequence of an operator, an opening delimiter, a regu‐
+       lar expression, a closing delimter, and zero-or-more flags.   The
+       last command of a pattern if given no flags need not have a clos‐
+       ing delimter.
+
+       The supported operators are as follows:
+
+       g       Keep matches that match the given regex.
+       G       Keep matches that don’t match the given regex.
+       h       Highlight  substrings  in  matches  that  match the given
+               regex.
+       H       Highlight substrings in  matches  that  don’t  match  the
+               given regex.
+       x       Select everything that matches the given regex.
+       X       Select everything that doesn’t match the given regex.
+
+       An  example  pattern  to match all numbers that contain a ‘3’ but
+       aren’t ‘1337’ could be ‘x/[0-9]+/ g/3/ G/^1337$/’.  In that  pat‐
+       tern,  ‘x/[0-9]+/’ selects all numbers in the input, ‘g/3/’ keeps
+       only those matches that contain the  number  3,  and  ‘G/^1337$/’
+       filters out the specific number 1337.
+
+       The  opening-  and  closing-delimiter used for each given command
+       can be any valid UTF-8 codepoint.  As  a  result,  the  following
+       pattern using the delimiters ‘|’, ‘.’, and ‘ä’ is well-formed:
+
+             x|[0-9]+| g.3. Gä^1337$ä
+
+       Delimeters   also   respect  the  Unicode  ‘Bidirectional  Paired
+       Bracket’ property.  This means that alongside the previous  exam‐
+       ples, the following non-exhaustive list of character pairs may be
+       used as opening- and closing delimiters:
+
+       •   ｢…｣
+       •   ⟮…⟯
+       •   ⟨…⟩
+
+       It is not recommended that you use characters that have a special
+       meaning in regular expression syntax as delimiters, unless you’re
+       using literal patterns via the -l option or the ‘l’ command flag.
+
+       Operators  are not allowed to take empty regular expression argu‐
+       ments with one exception: ‘h’.  When given an empty  regular  ex‐
+       pression  argument, the ‘h’ operator assumes the same regular ex‐
+       pression as the previous operator.  This allows you to avoid  du‐
+       plication  in  the  common  case where a user wishes to highlight
+       text matched by a ‘g’ or ‘x’  operator.   The  following  example
+       pattern  selects  all words that have a capital letter, and high‐
+       lights the capital letter(s):
+
+             x/\w+/ g/\p{Lu}/ h//
+
+       The empty ‘h’ operator is not permitted as the first operator  in
+       a pattern.
+
+       While  various  command-line options exist to alter the behaviour
+       of patterns such as -i to enable case-insensitive matching or  -U
+       to disable Unicode support, various different options can also be
+       set  at the command-level by appending a command with one-or-more
+       flags.  As an example, one could match all sequences  of  one-or-
+       more  non-whitespace characters that contain the case-insensitive
+       literal string ‘[hi]’ by using the following pattern:
+
+             x/\S+/ g/[hi]/li
+
+       The currently supported flags are as follows:
+
+       i/I     enable or disable case-insensitive matching respectively
+       l/L     enable or disable treating the supplied regex as a  fixed
+               string
+       u/U     enable or disable Unicode support respectively
+
+ENVIRONMENT
+       Do not display any colored output when set to a non-empty string,
+       even  if  the  standard-output  is  a terminal.  This environment
+       variable takes precedence over CLICOLOR_FORCE.
+       Force display of colored output when set to a  non-empty  string,
+       even if the standard-output isn’t a terminal.
+       If  set to ‘dumb’ disables colored output, taking precedence over
+       all other environment variables.
+
+EXIT STATUS
+       The grab utility exits with one of the following values:
+
+             0       One or more matches were selected.
+             1       No matches were selected.
+             2       A non-fatal error occured, such as failure to  read
+                     a file.
+             >2      A fatal error occured.
+
+EXAMPLES
+       List all your systems CPU flags, sorted and without duplicates:
+
+             $  grab  'x/^flags.*?$/ x/\w+/ G/^flags$/' </proc/cpuinfo |
+             sort -u
+
+       Search for a pattern in multiple files without printing filenames
+       or position information:
+
+             $ cat file1 file2 file3 | grab 'x/pattern/'
+
+       Search for usages of an ‘<hb-form-text>’ Vue component — but only
+       those which are being passed a ‘placeholder’ property — searching
+       all files in the current git-repository:
+
+             $  git   grab   'x/<hb-form-text.*?>/   g/\bplaceholder\b/'
+             '*.vue'
+
+       Extract  bibliographic  references  from mdoc(7) formatted manual
+       pages:
+
+             $ grab 'x/(^\.%.*?\n)+/' foo.1 bar.1
+
+SEE ALSO
+       git(1), grep(1), pcre2syntax(3), regex(7)
+
+       Rob       Pike,       Structural       Regular       Expressions,
+       https://doc.cat-v.org/bell_labs/structural_regexps/se.pdf,   AT&T
+       Bell Laboratories, Murray Hill, New Jersey 07974, 1987.
+
+       SGR                                                   Parameters:
+       https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
+
+AUTHORS
+       Thomas Voss <mail@thomasvoss.com>
+
+NOTES
+       When pattern matching with literal strings you should avoid using
+       delimeters  that  are  contained  within the search string as any
+       backslashes used to escape the delimeters will be searched for in
+       the text literally.
+
+BUGS
+       The pattern string provided as a command-line argument as well as
+       the provided input files must be encoded as UTF-8.  No other  en‐
+       codings  are  supported unless they are UTF-8 compatible, such as
+       ASCII.
+
+       The -L option has incredibly poor performance compared to the  -b
+       option, especially with very large inputs.
+
+Grab 3.0.0                  13 November, 2024                    GRAB(1)
 ```
-
-You can additionally use filter operators to keep or discard certain
-results.  The ‘g’ operator will filter out any results that don’t match
-the given regex, while the ‘G’ operator will do the opposite.  To select
-all numbers that contain a ‘3’ we can thus do:
-
-``` sh
-echo 'foo12bar34baz' | grab 'x/[0-9]+/ g/3/'
-# ⇒ 34
-
-# If we had used ‘x’ instead of ‘g’, the result would have just been ‘3’.
-# Filter operators do not modify the selections; they merely filter them.
-```
-
-Likewise to select all numbers that don’t contain a ‘3’:
-
-```sh
-echo 'foo12bar34baz' | grab 'x/[0-9]+/ G/3/'
-# ⇒ 12
-```
-
-You can also chain these together.  To get all numbers in a file that
-contain a ‘3’ but aren’t the specific number ‘1337’, we could do the
-following:
-
-```sh
-grab 'x/[0-9]+/ g/3/ G/^1337$/' /foo/bar
-```
-
-The final set of operators are highlighting operators.  They don’t change
-the text that is ultimately matched in any manner, but instead highlight
-the matched text in the output.  If given the empty regular expression
-the ‘h’ operator will highlight according to the same regular expression
-as the previous operator.
-
-The following examples select words with a capital letter, and highlights
-all the capital letters:
-
-```sh
-# These are both the same
-grab 'x/\w+/ g/[A-Z]/ h/[A-Z]/' /foo/bar
-grab 'x/\w+/ g/[A-Z]/ h//'      /foo/bar
-```
-
-
-## Examples
-
-### Get a list of your CPU flags.
-
-```sh
-# With Grep
-grep '^flags' /proc/cpuinfo \
-| sed 's/flags:\t*: //; y/ /\n/' \
-| sort \
-| uniq
-
-# With Grab
-grab 'x/^flags.*/ x/\w+/ G/flags/' /proc/cpuinfo \
-| sort \
-| uniq
-```
-
-1) Select lines that start with ‘flags’: `x/^flags.*/`
-2) Select all the words: `x/\w+/`
-3) Filter out the word ‘flags’: `G/flags/`
-
-
-### Find `<my-tag>` tags with the attribute `data-attr` in a Git repo
-
-```sh
-git grab 'x/<my-tag.*?>/ g/data-attr/' '*.html'
-```
-
-1) Select all tags matching `<my-tag>`
-2) Filter out tags without `data-attr`
-
-
-## Additional Options
-
-The Grab utility has a few options that may be helpful for your usecase.
-For more detailed documentation, see the Grab manual with `man grab`.
 
 
 [1]: https://doc.cat-v.org/bell_labs/structural_regexps/se.pdf
