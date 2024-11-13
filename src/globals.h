@@ -22,11 +22,11 @@ enum {
 };
 
 typedef struct {
-	bool     b : 1;
 	bool     c : 1;
 	unsigned H : 2;
 	bool     i : 1;
 	bool     l : 1;
+	bool     L : 1;
 	bool     p : 1;
 	bool     s : 1;
 	bool     U : 1;

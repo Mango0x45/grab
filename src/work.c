@@ -359,7 +359,7 @@ write_match_to_buffer(u8view_t sv, u8view_t *hl)
 		char offset[/* len(INT64_MAX - 1) */ 19];
 		pos_state_t ps = {.buf = {baseptr, PTRDIFF_MAX}};
 
-		if (flags.b) {
+		if (!flags.L) {
 			offsetsz = sprintf(offset, "%td", sv.p - baseptr);
 			array_extend_sv(buf, COL_LN);
 			array_extend(buf, offset, offsetsz);

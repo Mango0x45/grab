@@ -84,7 +84,7 @@ main(int argc, char **argv)
 			break;
 		switch (opt) {
 		case 'b':
-			flags.b = true;
+			flags.L = false;
 #if !GIT_GRAB
 			flags.do_header = true;
 #endif
@@ -122,7 +122,7 @@ main(int argc, char **argv)
 			flags.l = true;
 			break;
 		case 'L':
-			flags.b = false;
+			flags.L = true;
 #if !GIT_GRAB
 			flags.do_header = true;
 #endif
