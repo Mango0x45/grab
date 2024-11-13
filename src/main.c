@@ -367,7 +367,8 @@ pattern_comp(u8view_t pat)
 			if (op.re == nullptr) {
 				/* TODO: Print which regex failed to compile */
 				pcre2_bitch_and_die(
-					ec, "failed to compile regex at byte offset %zu", eoff);
+					ec, "failed to compile regex %s%.*s%s at byte offset %zu",
+					lquot, SV_PRI_ARGS(re), rquot, eoff);
 			}
 			if ((ec = pcre2_jit_compile(op.re, PCRE2_JIT_COMPLETE)) != 0)
 				pcre2_bitch_and_die(ec, "failed to JIT compile regex");
