@@ -1,24 +1,24 @@
-.Dd 2 February, 2024
+.Dd 13 November, 2024
 .Dt GRAB 1
-.Os Grab 2.2.3
+.Os Grab 3.0.0
 .Sh NAME
 .Nm grab ,
 .Nm "git grab"
 .Nd search for patterns in files
 .Sh SYNOPSIS
 .Nm
-.Op Fl s | z
-.Op Fl bcfinU
+.Op Fl H Ar never | multi | always
+.Op Fl bcilLpsUz
 .Ar pattern
 .Op Ar
 .Nm
 .Fl h
 .Pp
 .Nm "git grab"
-.Op Fl s | z
-.Op Fl bcinU
+.Op Fl H Ar never | multi | always
+.Op Fl bcilLpsUz
 .Ar pattern
-.Op Ar glob ...
+.Op Ar "glob ..."
 .Nm "git grab"
 .Fl h
 .Sh DESCRIPTION
@@ -33,9 +33,7 @@ Unlike the
 utility,
 .Nm
 is not strictly line-oriented;
-instead of always matching on complete lines,
-the user defines the structure of the text they would like to match and
-filters on the results.
+the structure of matches is left up to the user to define.
 For more details on the pattern syntax, see
 .Sx Pattern Syntax .
 .Pp
@@ -43,19 +41,12 @@ The
 .Nm "git grab"
 utility is identical to the
 .Nm
-utility in all ways bar two exceptions.
-The first is that if no files
-.Pq globs in this case to be precise
-are specified,
-input is not read from the standard-input but instead from all non-binary
-files in the current git-repository.
-If the user provides one or more globs,
-only the non-binary files in the current git-repository that match one or
-more of the given globs will be processed.
-Secondly, the
-.Fl f
-option is not available;
-its behavior is always assumed and cannot be disabled.
+utility except that it takes globs matching files as command-line
+arguments instead of files,
+and processes all non-binary files in the current git repository that
+match the provided globs.
+If no globs are provided,
+all non-binary files in the current git repository are processed.
 .Pp
 .Nm
 will read from the files provided on the command-line.
@@ -65,25 +56,18 @@ The special filename
 can also be provided,
 which represents the standard-input.
 .Pp
-The default behavior of
-.Nm
-is to print pattern matches to the standard-output.
-If more than one file argument is provided,
-matches will be prefixed by their respective filename and the position of
-the match,
-colon-separated.
-Note that this behavior is modified by the
-.Fl b ,
-.Fl f
-and
-.Fl z
-options.
+Similar to the
+.Xr grep 1
+utility matches are printed to the standard output.
+They are additionally prefixed with the name of the file in which
+.Ar pattern
+was matched, as well as the location of the match.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl b , Fl Fl byte\-offset
-Report the positions of pattern matches using the byte offset/position in
-the file instead of the line and column.
+Report the positions of pattern matches as the (zero-based) byte offset
+of the match from the beginning of the file.
 .Pp
 This option is useful if your text editor
 .Pq such as Xr vim 1 or Xr emacs 1
@@ -96,115 +80,91 @@ This is useful when piping the output of
 into a pager such as
 .Xr less 1 .
 .Pp
-Even when this option is specified,
-if the
-.Ev TERM
-environment variable is set to
-.Sq dumb ,
-no color will be output.
-.It Fl f , Fl Fl filenames
-Always prefix matches with the names of the files in which the matches
-were made,
-even if only 1 file was provided.
-.Pp
-This option is always enabled when using
-.Nm "git grab" .
+This option takes precedence over the environment variables described in
+.Sx ENVIRONMENT
+that relate to the usage of color.
 .It Fl h , Fl Fl help
 Display help information by opening this manual page.
+.It Fl H , Fl Fl header\-line Ns = Ns Ar when
+Control the usage of a dedicated header line,
+where the filename and match position are printed on a dedicated line
+above the match.
+The available options for
+.Ar when
+are:
+.Pp
+.Bl -tag -width Ds -compact
+.It never
+never use a dedicated header line
+.It always
+always use a dedicated header line
+.It multi
+use a dedicated header line when the matched pattern spans multiple lines
+.El
 .It Fl i , Fl Fl ignore\-case
 Match patterns case-insensitively.
-When PCRE support is available this option respects Unicode
-.Po
-i.e. the pattern
-.Sq x/ß/
-will match
-.Sq ẞ
-.Pc .
-.It Fl n , Fl Fl newline
-Treat the newline as a special character by disallowing the dot
-.Pq Sq \&.
-wildcard from matching newlines in regular expressions.
+.It Fl l , Fl Fl literal
+Treat patterns as literal strings,
+i.e. don’t interpret them as regular expressions.
+.It Fl L , Fl Fl line\-position
+Report the positions of matches as a (one-based) line- and column
+position separated by a colon.
 .Pp
-This option may behave strangely when
-.Nm
-is not compiled with PCRE support.
-See
-.Sx CAVEATS
-for more information.
+This option is the default behaviour if the
+.Fl b
+option is not supplied,
+but is provided as a means to override the
+.Fl b
+option.
+.It Fl p , Fl Fl predicate
+Return an exit status indicating if a match was found without writing any
+output to the standard output.
+When simply checking for the presence of a pattern in an input,
+this option is far more efficient than redirecting output to
+.Pa /dev/null .
 .It Fl s , Fl Fl strip\-newline
 Don’t print a newline at the end of a match if the match already ends in
 a newline.
 This can make output seem more
 .Sq natural ,
 as many matches will already have terminating newlines.
-.Pp
-This option is mutually exclusive with the
-.Fl z
-option.
 .It Fl U , Fl Fl no\-unicode
 Don’t use Unicode properties when matching \ed, \ew, etc.
 Recognize only ASCII values instead.
-.Pp
-If
-.Nm
-is not compiled with PCRE support this option will cause the program to
-terminate with exit status 2.
 .It Fl z , Fl Fl zero
 Separate output data by null bytes
 .Pq Sq \e0
 instead of newlines.
 This option can be used to process matches containing newlines.
-.Pp
-If combined with the
-.Fl f
-option,
-or if two or more files were provided as arguments,
-filenames and matches will be separated by null bytes instead of colons.
-.Pp
-This option is mutually exclusive with the
-.Fl s
-option.
 .El
-.Ss Regular Expression Syntax
-By default
-.Nm
-supports Perl-compatible regular expressions
-.Pq Sq PCREs ,
-however it is possible to build and install
-.Nm
-without support for PCREs.
-When built without PCRE support,
-POSIX extended-regular-expressions are used instead.
-.Pp
-You should always assume that PCRE support is available,
-but if you would like to be absolutely sure you can check if the program
-terminates unsuccessfully when using the
-.Fl U
-option.
 .Ss Pattern Syntax
-A pattern is a sequence of commands optionally separated by whitespace.
-A command is an operator followed by a delimiter, a regular expression,
-and then terminated by the same delimiter.  The last command of a pattern
-need not have a terminating delimiter.
+A pattern is a sequence of whitespace-separated commands.
+A command is a sequence of an operator,
+an opening delimiter,
+a regular expression,
+a closing delimter,
+and zero-or-more flags.
+The last command of a pattern if given no flags need not have a closing
+delimter.
 .Pp
 The supported operators are as follows:
 .Pp
 .Bl -tag -compact
 .It g
-Keep everything that matches the given regex.
+Keep matches that match the given regex.
 .It G
-Keep everything that doesn’t match the given regex.
+Keep matches that don’t match the given regex.
 .It h
-Highlight everything that matches the given regex.
+Highlight substrings in matches that match the given regex.
 .It H
-Highlight everything that doesn’t match the given regex.
+Highlight substrings in matches that don’t match the given regex.
 .It x
 Select everything that matches the given regex.
 .It X
 Select everything that doesn’t match the given regex.
 .El
 .Pp
-An example pattern to match all numbers that contain a ‘3’ but aren’t
+An example pattern to match all numbers that contain a ‘3’ but aren’t
 ‘1337’ could be
 .Sq x/[0\-9]+/ g/3/ G/^1337$/ .
 In that pattern,
@@ -216,8 +176,8 @@ and
 .Sq G/^1337$/
 filters out the specific number 1337.
 .Pp
-The delimiter used for each given operator can be any valid UTF-8
-codepoint.
+The opening- and closing-delimiter used for each given command can be any
+valid UTF-8 codepoint.
 As a result,
 the following pattern using the delimiters
 .Sq | ,
@@ -226,7 +186,31 @@ and
 .Sq ä
 is well-formed:
 .Pp
-.Dl x|[0\-9]+| g.3. Gä^1337ä
+.Dl x|[0\-9]+| g.3. Gä^1337$ä
+.Pp
+Delimeters also respect the Unicode
+.Sq Bidirectional Paired Bracket
+property.
+This means that alongside the previous examples,
+the following non-exhaustive list of character pairs may be used as
+opening- and closing delimiters:
+.Pp
+.Bl -bullet -compact
+.It
+｢…｣
+.It
+⟮…⟯
+.It
+⟨…⟩
+.El
+.Pp
+It is not recommended that you use characters that have a special meaning
+in regular expression syntax as delimiters,
+unless you’re using literal patterns via the
+.Fl l
+option or the
+.Sq l
+command flag.
 .Pp
 Operators are not allowed to take empty regular expression arguments with
 one exception:
@@ -238,57 +222,59 @@ operator assumes the same regular expression as the previous operator.
 This allows you to avoid duplication in the common case where a user
 wishes to highlight text matched by a
 .Sq g
+or
+.Sq x
 operator.
 The following example pattern selects all words that have a capital
 letter,
 and highlights the capital letter(s):
 .Pp
-.Dl x/\ew+/ g/[A\-Z]/ h//
+.Dl x/\ew+/ g/\ep{Lu}/ h//
 .Pp
 The empty
 .Sq h
 operator is not permitted as the first operator in a pattern.
-.Sh ENVIRONMENT
-.Bl -tag -width GRAB_COLORS
-.It Ev GRAB_COLORS
-A comma-separated list of color options in the form
-.Sq key=val .
-The value specified by
-.Ar val
-must be a SGR parameter.
-For more information see
-.Sx "SEE ALSO" .
 .Pp
-The keys are as follows:
+While various command-line options exist to alter the behaviour of
+patterns such as
+.Fl i
+to enable case-insensitive matching or
+.Fl U
+to disable Unicode support,
+various different options can also be set at the command-level by
+appending a command with one-or-more flags.
+As an example,
+one could match all sequences of one-or-more non-whitespace characters
+that contain the case-insensitive literal string
+.Sq [hi]
+by using the following pattern:
+.Pp
+.Dl x/\eS+/ g/[hi]/li
+.Pp
+The currently supported flags are as follows:
 .Pp
 .Bl -tag -compact
-.It fn
-filenames prefixing any content line.
-.It hl
-text matched by an
-.Sq h
-or
-.Sq H
-command.
-.It ln
-line- and column-numbers,
-as well as byte offsets when reporting the location of a match.
-.It se
-separators inserted between filenames and content lines.
+.It i/I
+enable or disable case-insensitive matching respectively
+.It l/L
+enable or disable treating the supplied regex as a fixed string
+.It u/U
+enable or disable Unicode support respectively
 .El
-.Pp
-The default value is
-.Sq fn=35,hl=01;31,ln=32,se=36
+.Sh ENVIRONMENT
 .It Ev NO_COLOR
 Do not display any colored output when set to a non-empty string,
 even if the standard-output is a terminal.
+This environment variable takes precedence over
+.Ev CLICOLOR_FORCE .
+.It Ev CLICOLOR_FORCE
+Force display of colored output when set to a non-empty string,
+even if the standard-output isn’t a terminal.
 .It Ev TERM
 If set to
 .Sq dumb
 disables colored output,
-even when the
-.Fl c
-option is provided.
+taking precedence over all other environment variables.
 .El
 .Sh EXIT STATUS
 The
@@ -301,20 +287,18 @@ One or more matches were selected.
 .It Li 1
 No matches were selected.
 .It Li 2
-The
-.Fl U
-option was passed but
-.Nm
-wasn’t built with PCRE support.
+A non-fatal error occured,
+such as failure to read a file.
 .It Li >2
-An error occured.
+A fatal error occured.
 .El
 .Sh EXAMPLES
 List all your systems CPU flags, sorted and without duplicates:
 .Pp
-.Dl $ grab -n 'x/^flags.*/ x/\ew+/ G/flags/' /proc/cpuinfo | sort | uniq
+.Dl $ grab 'x/^flags.*?$/ x/\ew+/ G/^flags$/' </proc/cpuinfo | sort -u
 .Pp
-Search for a pattern in multiple files without printing filenames:
+Search for a pattern in multiple files without printing filenames or
+position information:
 .Pp
 .Dl $ cat file1 file2 file3 | grab 'x/pattern/'
 .Pp
@@ -332,15 +316,7 @@ Extract bibliographic references from
 .Xr mdoc 7
 formatted manual pages:
 .Pp
-.Dl $ grab \-n 'x/(^\e.%.*\en)+/' foo.1 bar.1
-.Pp
-Extract the
-.Sx SYNOPSIS
-section from the given
-.Xr mdoc 7
-formatted manual pages:
-.Pp
-.Dl $ grab \-n 'x/^\e.Sh SYNOPSIS\en(^.*\en(?!^\e.Sh))+/' foo.1 bar.1
+.Dl $ grab 'x/(^\e.%.*?\en)+/' foo.1 bar.1
 .Sh SEE ALSO
 .Xr git 1 ,
 .Xr grep 1 ,
@@ -358,25 +334,10 @@ formatted manual pages:
 .Lk https://en.wikipedia.org/wiki/ANSI_escape_code#SGR "SGR Parameters"
 .Sh AUTHORS
 .An Thomas Voss Aq Mt mail@thomasvoss.com
-.Sh CAVEATS
-The behavior of negated character classes in regular expressions will
-vary when given the
-.Fl n
-option depending on if PCRE support is or isn’t available.
-.Pp
-When PCRE support is available and the
-.Fl n
-option is provided,
-the regular expression
-.Ql [^a]
-will nonetheless match the newline character.
-When PCRE support is not available and the
-.Fl n
-option is provided,
-the newline will
-.Em not
-be matched by
-.Ql [^a] .
+.Sh NOTES
+When pattern matching with literal strings you should avoid using
+delimeters that are contained within the search string as any backslashes
+used to escape the delimeters will be searched for in the text literally.
 .Sh BUGS
 The pattern string provided as a command-line argument as well as the
 provided input files must be encoded as UTF-8.
