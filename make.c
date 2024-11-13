@@ -3,6 +3,7 @@
 #include <glob.h>
 #include <langinfo.h>
 #include <libgen.h>
+#include <limits.h>
 #include <locale.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -18,6 +19,14 @@
 #include "cbs.h"
 
 #define flagset(o) (flags & UINT32_C(1)<<(o)-'a')
+
+#define EXEC(cmd)                         \
+	do {                                  \
+		cmdput(cmd);                      \
+		if (cmdexec(cmd) != EXIT_SUCCESS) \
+			exit(EXIT_FAILURE);           \
+		strszero(&cmd);                   \
+	} while (false)
 
 [[noreturn, gnu::format(printf, 1, 2)]]
 static void err(const char *, ...);
@@ -107,14 +116,43 @@ usage:
 		} else if (strcmp(argv[0], "distclean") == 0) {
 			strspushl(&cmd, "rm", "-f", "grab", "git-grab", "make");
 			if (fexists("vendor/mlib/make")) {
-				cmdput(cmd);
-				if (cmdexec(cmd) != EXIT_SUCCESS)
-					exit(EXIT_FAILURE);
-				strszero(&cmd);
+				EXEC(cmd);
 				strspushl(&cmd, "vendor/mlib/make", "clean");
 			}
 		} else if (strcmp(argv[0], "install") == 0) {
-			/* TODO: Add install target */
+			char *p;
+			const char *ev;
+			static char prefix[PATH_MAX + 1];
+			static char bindir[PATH_MAX + 1];
+			static char mandir[PATH_MAX + 1];
+
+			p = prefix;
+			if ((ev = getenv("DESTDIR")) != nullptr)
+				p = stpncpy(p, ev, sizeof(prefix) - 1);
+			if ((ev = getenv("PREFIX")) != nullptr)
+				strncpy(p, ev, sizeof(prefix) - 1 - (p - prefix));
+			else
+				strncpy(p, "/usr/local", sizeof(prefix) - 1 - (p - prefix));
+
+			snprintf(bindir, sizeof(bindir), "%s/%s", prefix, "bin");
+			snprintf(mandir, sizeof(mandir), "%s/%s", prefix, "share/man/man1");
+
+			if (binexists("strip")) {
+				strspushl(&cmd, "strip", "-s", "grab", "git-grab");
+				EXEC(cmd);
+			}
+
+			strspushl(&cmd, "mkdir", "-p", bindir, mandir);
+			EXEC(cmd);
+
+			strspushl(&cmd, "cp", "grab", "git-grab", bindir);
+			EXEC(cmd);
+
+			strspushl(&cmd, "cp", "man/grab.1", "man/git-grab.1", mandir);
+			EXEC(cmd);
+
+			strsfree(&cmd);
+			return EXIT_SUCCESS;
 		} else {
 			err(strcmp(nl_langinfo(CODESET), "UTF-8") == 0
 				? "invalid subcommand — ‘%s’"
